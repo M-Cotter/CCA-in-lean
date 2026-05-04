@@ -1,3 +1,4 @@
+/-
 import Mathlib
 
 noncomputable section
@@ -5,7 +6,7 @@ noncomputable section
 variable {σ R : Type*} [CommRing R] [Nontrivial R]
 
 /- Abbreviation for the monomials, aka the standard basis for MvPolynomial -/
-/- Addition is automatically defined since Mathlib knows this type to be a 
+/- Addition is automatically defined since Mathlib knows this type to be a
   ""module"" over `ℕ`, but we would like to show this to be multiplication.
   It probably doesn't matter though. -/
 abbrev Monomial (σ : Type*) := σ →₀ ℕ
@@ -151,27 +152,28 @@ def SquareFreeMonomialIdeal.ideal (I : SquareFreeMonomialIdeal σ R) :=
 def MvPolynomial.Ideal_Monomials (I : Ideal (MvPolynomial σ R)) :=
   {i : I // ∃ m : σ →₀ ℕ, i = (m : MvPolynomial σ R)}
 
-theorem monomials_sum_zero_iff (a b : σ →₀ ℕ) : 
+theorem monomials_sum_zero_iff (a b : σ →₀ ℕ) :
   ¬(a : MvPolynomial σ R) + b = 0 := by
   intro bad
   sorry
 
 def monomials_basis_squareFree (I : SquareFreeMonomialIdeal σ R) :
-  Module.Basis (σ →₀ ℕ) R I.ideal := 
+  Module.Basis (σ →₀ ℕ) R I.ideal :=
   {
     repr := sorry
   }
 
 theorem squareFreeMonomial_contains_support (I : SquareFreeMonomialIdeal σ R) :
-    ∀ p : MvPolynomial σ R, p ∈ I.ideal → 
+    ∀ p : MvPolynomial σ R, p ∈ I.ideal →
     ∀ m ∈ p.support, (m : MvPolynomial σ R) ∈ I.ideal := by
   intro p hpi m hmp
   sorry
 
 /-
 theorem poly_supp_in_ideal_iff_monomial (I : Ideal (MvPolynomial σ R)) :
-    ∃ (S : Set (σ →₀ ℕ)), 
+    ∃ (S : Set (σ →₀ ℕ)),
       I = Ideal.span {m : MvPolynomial σ R | ∃ (i : S), m = i}
     ↔ ∀ (p : MvPolynomial σ R), ∀ (m : p.support), (m : MvPolynomial) ∈ I := by
   sorry
+-/
 -/

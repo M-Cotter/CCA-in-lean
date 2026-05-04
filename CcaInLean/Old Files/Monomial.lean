@@ -10,7 +10,7 @@ namespace MvPolynomial
 
 /- Coercion from Monomial to MvPolynomial in the obvious sense -/
 instance : Coe (σ →₀ ℕ) (MvPolynomial σ R) where
-  coe x := MvPolynomial.monomial x 1
+  coe x := monomial x 1
 
 /- Coercion preserves equality. -/
 @[simp]
@@ -26,7 +26,7 @@ lemma Monomial.coe_one {R : Type*} [CommRing R] :
 /- Coercion is multiplcative -/
 lemma Monomial.coe_add {R : Type*} [CommRing R] (a b : σ →₀ ℕ) :
    (a + b : σ →₀ ℕ) = (a : MvPolynomial σ R) * b := by
-  rw [@MvPolynomial.monomial_mul, one_mul]
+  rw [MvPolynomial.monomial_mul, one_mul]
 
 /- `a ≤ b` as maps to `ℕ` if and only if the `a ∣ b` as polynomials -/
 lemma Monomial.coe_dvd (a b : σ →₀ ℕ) :
@@ -71,15 +71,19 @@ def MonomialsBasisMonIdeal (s : Set (σ →₀ ℕ)) :
   · exact fun x ↦ ⟨monomial x (1 : R), x.2⟩
   · exact monoms_lin_indep_monomial_ideal _ _ _
   · intro p _
-    have : p.1 = ∑ v ∈ p.1.support, (monomial v) (coeff v p) := by
+    have peq : p.1 = ∑ v ∈ p.1.support, (monomial v) (coeff v p) := by
       simp only [support_sum_monomial_coeff]
-    rw [@Finsupp.mem_span_iff_linearCombination]
+    have : p.1 ∈ MonomialIdeal σ R s := sorry
+    rw [mem_ideal_span_monomial_image] at this
+    rw [Finsupp.mem_span_iff_linearCombination]
+    use sorry
     sorry
 
 /- Exists finite monomial spanning set of any monomial ideal -/
+/-
 example (s : Set (σ →₀ ℕ)) (I : MonomialIdeal σ R s) :
     ∃ (t : Finset (σ →₀ ℕ)), I =
   Ideal.span ((fun exp ↦ monomial exp (1 : R)) '' (t : Set (σ →₀ ℕ))) := sorry
-
+-/
 
 end MvPolynomial

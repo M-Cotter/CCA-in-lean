@@ -1,0 +1,181 @@
+import Mathlib.Algebra.MvPolynomial.Basic
+import Mathlib.RingTheory.MvPolynomial
+import Mathlib.Algebra.MvPolynomial.Division
+import Mathlib.RingTheory.MvPolynomial.Ideal
+
+noncomputable section
+
+variable {σ R : Type*} [CommRing R] [Nontrivial R]
+
+#check Module.Basis
+
+namespace MvPolynomial
+namespace Monomial
+/- Coercion from Monomial to MvPolynomial in the obvious sense -/
+instance : Coe (σ →₀ ℕ) (MvPolynomial σ R) where
+  coe x := monomial x 1
+
+/- Coercion preserves equality. -/
+@[simp]
+lemma Mcoe_eq (a b : σ →₀ ℕ) :
+    (a : MvPolynomial σ R) = b ↔ (a : σ →₀ ℕ) = b := by
+  simp only [ne_eq, one_ne_zero, not_false_eq_true, monomial_left_inj]
+
+/- Coercion preserves one -/
+@[simp]
+lemma coe_one {R : Type*} [CommRing R] :
+    (1 : MvPolynomial σ R) = (0 : σ →₀ ℕ) := by rfl
+
+/- Coercion is multiplcative -/
+lemma coe_add {R : Type*} [CommRing R] (a b : σ →₀ ℕ) :
+   (a + b : σ →₀ ℕ) = (a : MvPolynomial σ R) * b := by
+  rw [MvPolynomial.monomial_mul, one_mul]
+
+/- `a ≤ b` as maps to `ℕ` if and only if the `a ∣ b` as polynomials -/
+lemma coe_dvd (a b : σ →₀ ℕ) :
+    a ≤ b ↔ (a : MvPolynomial σ R) ∣ b := by
+  rw [monomial_one_dvd_monomial_one]
+
+/- Support of coerced exponent vector is itself -/
+lemma coe_support (a : σ →₀ ℕ) :
+    (a : MvPolynomial σ R).support = {a} := by
+  rw [@support_monomial _ _ _ _ _ (Classical.propDecidable (1 = 0))]
+  simp only [one_ne_zero, ↓reduceIte]
+
+/- Shorthand for existing mathlib monomial ideal -/
+abbrev MonomialIdeal (σ R : Type*) [CommRing R] [Nontrivial R]
+  (s : Set (σ →₀ ℕ)) : Ideal (MvPolynomial σ R) :=
+  Ideal.span ((fun exp ↦ monomial exp (1 : R)) '' s)
+
+@[simp]
+lemma monomial_ideal_of_bot : MonomialIdeal σ R ⊥ = ⊥ := by
+  simp only [Set.bot_eq_empty, Submodule.span_eq_bot, Set.image_empty, Set.mem_empty_iff_false,
+    IsEmpty.forall_iff, implies_true]
+
+@[simp]
+lemma monomial_ideal_of_empty : MonomialIdeal σ R ∅ = ⊥ := by
+  simp only [Submodule.span_eq_bot, Set.image_empty, Set.mem_empty_iff_false,
+    IsEmpty.forall_iff, implies_true]
+
+/- Auxiliary lemma about ideal spans -/
+lemma Ideal.span_le_span {R : Type*} [CommRing R] (s t : Set R) :
+    (∀ x ∈ t, ∃ y ∈ s, y ∣ x) → Ideal.span t ≤ Ideal.span s := by
+  rw [Ideal.span_le]
+  intro hx a ha_mem_t
+  rw [@SetLike.mem_coe]
+  rcases (hx a ha_mem_t) with ⟨r, hrs, hr_dvd_a⟩
+  apply Ideal.mem_of_dvd
+  · exact hr_dvd_a
+  · exact Submodule.mem_span_of_mem hrs
+
+/- A monomial is in a monomial ideal if it is divisible by one of the elements -/
+theorem mem_monomial_ideal_iff (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) :
+  (m : MvPolynomial σ R) ∈ MonomialIdeal σ R s ↔ ∃ n ∈ s, n ≤ m := by
+  rw [mem_ideal_span_monomial_image]
+  constructor <;> intro h
+  -- Ask Mathias what the heck is going on here
+  · rw [@MvPolynomial.support_monomial _ _ _ _ _ (Classical.propDecidable (1 = 0))] at h
+    simp only [one_ne_zero, ↓reduceIte, Finset.mem_singleton, forall_eq] at h
+    exact h
+  · intro xi hx
+    have : xi = m := by
+      rw [@MvPolynomial.support_monomial _ _ _ _ _ (Classical.propDecidable (1 = 0))] at hx
+      simp only [one_ne_zero, ↓reduceIte, Finset.mem_singleton] at hx
+      exact hx
+    rwa [this]
+
+/- Monomial ideal is contained in another one if and only if their corresponding
+generator sets le eachother -/
+theorem monomial_ideal_le_monomial_ideal (s t : Set (σ →₀ ℕ)) :
+  (∀ m ∈ t, ∃ n ∈ s, n ≤ m) ↔ MonomialIdeal σ R t ≤ MonomialIdeal σ R s := by
+  constructor <;> intro h
+  · apply Ideal.span_le_span
+    intro p hp
+    rcases hp with ⟨a, b⟩
+    rcases h a b.1 with ⟨c, d⟩
+    use monomial c (1 : R)
+    constructor
+    · simp only [Set.mem_image, ne_eq, one_ne_zero, not_false_eq_true, monomial_left_inj,
+      exists_eq_right]
+      exact d.1
+    · rw [← b.2, ← coe_dvd]
+      exact d.2
+  · intro m hm
+    have : (m : MvPolynomial σ R) ∈ MonomialIdeal σ R s := by
+      apply h
+      rw [mem_monomial_ideal_iff]
+      use m
+    rcases (mem_monomial_ideal_iff s m).mp this with ⟨n, hn⟩
+    use n
+
+/- Sup of two monomial ideals is the monomial ideal of the union -/
+theorem sup_monomial_ideal (s t : Set (σ →₀ ℕ)) :
+    MonomialIdeal σ R s ⊔ MonomialIdeal σ R t = MonomialIdeal σ R (s ∪ t) := by
+  rw [← Ideal.span_union, ← Set.image_union]
+
+/- Supremum of any number of monomial ideals is a monomial ideal of the union-/
+theorem iSup_monomial_ideal {ι : Type*} (p : ι → Set (σ →₀ ℕ)) :
+    ⨆ i, MonomialIdeal σ R (p i) = MonomialIdeal σ R (⋃ i, p i) := by
+  rw [← Ideal.span_iUnion, ← Set.image_iUnion]
+
+example (I : Ideal (MvPolynomial σ R)) :
+    (∃ (s : Set (σ →₀ ℕ)), I = MonomialIdeal σ R s) ↔
+    ∀ p : I, ∀ xi ∈ p.1.support, (xi : MvPolynomial σ R) ∈ I := by
+  constructor
+  · intro ⟨s, hIs⟩
+    rw [hIs]
+    intro p xi hxi
+    rw [mem_monomial_ideal_iff]
+    have : p.1 ∈ MonomialIdeal σ R s := by
+      simp only [SetLike.coe_mem]
+    rw [mem_ideal_span_monomial_image] at this
+    rcases this xi hxi with ⟨a, ha⟩
+    use a
+  · intro ha
+    use {x | ∃ p : I, x ∈ p.1.support}
+    ext a
+    constructor <;> intro h
+    · rw [mem_ideal_span_monomial_image]
+      intro xi hxi
+      use xi
+      simp only [Std.le_refl, and_true]
+      rw [@Set.mem_setOf_eq]
+      use ⟨a, h⟩
+    · sorry
+    -- Just have to use the fact the support is in the ideal
+
+theorem inf_monomial_ideal (s t : Set (σ →₀ ℕ)) :
+    MonomialIdeal σ R s ⊓ MonomialIdeal σ R t =
+    MonomialIdeal σ R {m | ∃ xs ∈ s, ∃ xt ∈ t, m = max xs xt} := by
+  rw [le_antisymm_iff]
+  constructor
+  · intro x ⟨hxt, hxs⟩
+    simp only [SetLike.mem_coe] at *
+    rw [mem_ideal_span_monomial_image] at *
+    intro xi hxi
+    rcases hxt xi hxi with ⟨a, ha⟩
+    rcases hxs xi hxi with ⟨b, hb⟩
+    use a ⊔ b
+    simp only [Set.mem_setOf_eq, sup_le_iff, ha.2, hb.2, and_true]
+    use a
+    constructor
+    exact ha.1
+    use b
+    constructor
+    exact hb.1
+    rfl
+  · rw [le_inf_iff]
+    constructor <;> rw [← monomial_ideal_le_monomial_ideal]
+    · intro m hm
+      rcases hm with ⟨a, b, c, d⟩
+      use a
+      rw [d.2]
+      exact ⟨b, le_sup_left⟩
+    · intro m hm
+      rcases hm with ⟨a, b, c, d⟩
+      use c
+      rw [d.2]
+      exact ⟨d.1, le_sup_right⟩
+
+end Monomial
+end MvPolynomial
