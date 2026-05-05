@@ -7,9 +7,7 @@ noncomputable section
 
 variable {σ R : Type*} [CommRing R] [Nontrivial R]
 
-#check Module.Basis
-
-namespace MvPolynomial
+open MvPolynomial
 namespace Monomial
 /- Coercion from Monomial to MvPolynomial in the obvious sense -/
 instance : Coe (σ →₀ ℕ) (MvPolynomial σ R) where
@@ -17,7 +15,7 @@ instance : Coe (σ →₀ ℕ) (MvPolynomial σ R) where
 
 /- Coercion preserves equality. -/
 @[simp]
-lemma Mcoe_eq (a b : σ →₀ ℕ) :
+lemma coe_eq (a b : σ →₀ ℕ) :
     (a : MvPolynomial σ R) = b ↔ (a : σ →₀ ℕ) = b := by
   simp only [ne_eq, one_ne_zero, not_false_eq_true, monomial_left_inj]
 
@@ -108,6 +106,13 @@ theorem monomial_ideal_le_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     rcases (mem_monomial_ideal_iff s m).mp this with ⟨n, hn⟩
     use n
 
+theorem monomial_ideal_eq_monomial_ideal (s t : Set (σ →₀ ℕ)) :
+    (∀ m ∈ t, ∃ n ∈ s, n ≤ m) ∧ (∀ n ∈ s, ∃ m ∈ t, m ≤ n) ↔
+    MonomialIdeal σ R t = MonomialIdeal σ R s := by
+  rw [le_antisymm_iff, ← monomial_ideal_le_monomial_ideal,
+  ← monomial_ideal_le_monomial_ideal]
+
+
 /- Sup of two monomial ideals is the monomial ideal of the union -/
 theorem sup_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     MonomialIdeal σ R s ⊔ MonomialIdeal σ R t = MonomialIdeal σ R (s ∪ t) := by
@@ -118,7 +123,7 @@ theorem iSup_monomial_ideal {ι : Type*} (p : ι → Set (σ →₀ ℕ)) :
     ⨆ i, MonomialIdeal σ R (p i) = MonomialIdeal σ R (⋃ i, p i) := by
   rw [← Ideal.span_iUnion, ← Set.image_iUnion]
 
-example (I : Ideal (MvPolynomial σ R)) :
+theorem monomial_ideal_iff_support_mem (I : Ideal (MvPolynomial σ R)) :
     (∃ (s : Set (σ →₀ ℕ)), I = MonomialIdeal σ R s) ↔
     ∀ p : I, ∀ xi ∈ p.1.support, (xi : MvPolynomial σ R) ∈ I := by
   constructor
@@ -141,7 +146,14 @@ example (I : Ideal (MvPolynomial σ R)) :
       simp only [Std.le_refl, and_true]
       rw [@Set.mem_setOf_eq]
       use ⟨a, h⟩
-    · sorry
+    · suffices ∀ xi ∈ a.support, (xi : MvPolynomial σ R) ∈ I by sorry
+      intro xi hxi
+      rw [mem_ideal_span_monomial_image] at h
+      rcases h xi hxi with ⟨d, hd⟩
+      rcases hd.1 with ⟨e, he⟩
+      suffices (monomial d 1) ∈ I by sorry
+      apply ha e
+      exact he
     -- Just have to use the fact the support is in the ideal
 
 theorem inf_monomial_ideal (s t : Set (σ →₀ ℕ)) :
@@ -157,25 +169,28 @@ theorem inf_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     rcases hxs xi hxi with ⟨b, hb⟩
     use a ⊔ b
     simp only [Set.mem_setOf_eq, sup_le_iff, ha.2, hb.2, and_true]
-    use a
-    constructor
-    exact ha.1
-    use b
-    constructor
-    exact hb.1
-    rfl
+    exact ⟨a, ha.1, ⟨b, hb.1, rfl⟩⟩
   · rw [le_inf_iff]
     constructor <;> rw [← monomial_ideal_le_monomial_ideal]
     · intro m hm
-      rcases hm with ⟨a, b, c, d⟩
-      use a
-      rw [d.2]
-      exact ⟨b, le_sup_left⟩
+      rcases hm with ⟨n, hns, l, hl⟩
+      use n
+      rw [hl.2]
+      exact ⟨hns, le_sup_left⟩
     · intro m hm
-      rcases hm with ⟨a, b, c, d⟩
-      use c
-      rw [d.2]
-      exact ⟨d.1, le_sup_right⟩
+      rcases hm with ⟨n, hns, l, hl⟩
+      use l
+      rw [hl.2]
+      exact ⟨hl.1, le_sup_right⟩
+
+theorem mul_monomial_ideal (s t : Set (σ →₀ ℕ)) :
+    MonomialIdeal σ R s * MonomialIdeal σ R t =
+    MonomialIdeal σ R {z | ∃ x ∈ s, ∃ y ∈ t, x + y = z} := by
+  rw [Ideal.span_mul_span']
+  congr
+  ext x
+  rw [Set.mem_mul]
+  simp only [Set.mem_image, exists_exists_and_eq_and, monomial_mul, mul_one, Set.mem_setOf_eq,
+    exists_exists_and_exists_and_eq_and]
 
 end Monomial
-end MvPolynomial
