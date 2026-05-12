@@ -2,6 +2,7 @@ import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.RingTheory.MvPolynomial
 import Mathlib.Algebra.MvPolynomial.Division
 import Mathlib.RingTheory.MvPolynomial.Ideal
+import Mathlib
 
 noncomputable section
 
@@ -9,38 +10,38 @@ variable {σ R : Type*} [CommRing R] [Nontrivial R]
 
 open MvPolynomial
 namespace Monomial
-/- Coercion from Monomial to MvPolynomial in the obvious sense -/
+/-- Coercion from Monomial to MvPolynomial in the obvious sense. -/
 instance : Coe (σ →₀ ℕ) (MvPolynomial σ R) where
   coe x := monomial x 1
 
-/- Coercion preserves equality. -/
+/-- Coercion preserves equality. -/
 @[simp]
 lemma coe_eq (a b : σ →₀ ℕ) :
     (a : MvPolynomial σ R) = b ↔ (a : σ →₀ ℕ) = b := by
   simp only [ne_eq, one_ne_zero, not_false_eq_true, monomial_left_inj]
 
-/- Coercion preserves one -/
+/-- Coercion preserves one. -/
 @[simp]
 lemma coe_one {R : Type*} [CommRing R] :
     (1 : MvPolynomial σ R) = (0 : σ →₀ ℕ) := by rfl
 
-/- Coercion is multiplcative -/
+/-- Coercion is multiplcative. -/
 lemma coe_add {R : Type*} [CommRing R] (a b : σ →₀ ℕ) :
    (a + b : σ →₀ ℕ) = (a : MvPolynomial σ R) * b := by
   rw [MvPolynomial.monomial_mul, one_mul]
 
-/- `a ≤ b` as maps to `ℕ` if and only if the `a ∣ b` as polynomials -/
+/-- `a ≤ b` as maps to `ℕ` if and only if the `a ∣ b` as polynomials -/
 lemma coe_dvd (a b : σ →₀ ℕ) :
     a ≤ b ↔ (a : MvPolynomial σ R) ∣ b := by
   rw [monomial_one_dvd_monomial_one]
 
-/- Support of coerced exponent vector is itself -/
+/-- Support of coerced exponent vector is itself. -/
 lemma coe_support (a : σ →₀ ℕ) :
     (a : MvPolynomial σ R).support = {a} := by
   rw [@support_monomial _ _ _ _ _ (Classical.propDecidable (1 = 0))]
   simp only [one_ne_zero, ↓reduceIte]
 
-/- Shorthand for existing mathlib monomial ideal -/
+/-- Shorthand for existing mathlib monomial ideal. -/
 abbrev MonomialIdeal (σ R : Type*) [CommRing R] [Nontrivial R]
   (s : Set (σ →₀ ℕ)) : Ideal (MvPolynomial σ R) :=
   Ideal.span ((fun exp ↦ monomial exp (1 : R)) '' s)
@@ -55,7 +56,7 @@ lemma monomial_ideal_of_empty : MonomialIdeal σ R ∅ = ⊥ := by
   simp only [Submodule.span_eq_bot, Set.image_empty, Set.mem_empty_iff_false,
     IsEmpty.forall_iff, implies_true]
 
-/- Auxiliary lemma about ideal spans -/
+/-- Auxiliary lemma about ideal spans. -/
 lemma Ideal.span_le_span {R : Type*} [CommRing R] (s t : Set R) :
     (∀ x ∈ t, ∃ y ∈ s, y ∣ x) → Ideal.span t ≤ Ideal.span s := by
   rw [Ideal.span_le]
@@ -71,7 +72,6 @@ theorem mem_monomial_ideal_iff (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) :
   (m : MvPolynomial σ R) ∈ MonomialIdeal σ R s ↔ ∃ n ∈ s, n ≤ m := by
   rw [mem_ideal_span_monomial_image]
   constructor <;> intro h
-  -- Ask Mathias what the heck is going on here
   · rw [@MvPolynomial.support_monomial _ _ _ _ _ (Classical.propDecidable (1 = 0))] at h
     simp only [one_ne_zero, ↓reduceIte, Finset.mem_singleton, forall_eq] at h
     exact h
@@ -82,8 +82,8 @@ theorem mem_monomial_ideal_iff (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) :
       exact hx
     rwa [this]
 
-/- Monomial ideal is contained in another one if and only if their corresponding
-generator sets le eachother -/
+/-- For sets of monomial `s` and `t`, the ideal corresponding to `s` is contained in `t`
+  if and only if each element of `s` divides an element of `t`.  -/
 theorem monomial_ideal_le_monomial_ideal (s t : Set (σ →₀ ℕ)) :
   (∀ m ∈ t, ∃ n ∈ s, n ≤ m) ↔ MonomialIdeal σ R t ≤ MonomialIdeal σ R s := by
   constructor <;> intro h
@@ -106,23 +106,36 @@ theorem monomial_ideal_le_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     rcases (mem_monomial_ideal_iff s m).mp this with ⟨n, hn⟩
     use n
 
+/-- Monomial ideals are equal if and only if their generators contain eachother. -/
 theorem monomial_ideal_eq_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     (∀ m ∈ t, ∃ n ∈ s, n ≤ m) ∧ (∀ n ∈ s, ∃ m ∈ t, m ≤ n) ↔
     MonomialIdeal σ R t = MonomialIdeal σ R s := by
   rw [le_antisymm_iff, ← monomial_ideal_le_monomial_ideal,
   ← monomial_ideal_le_monomial_ideal]
 
-
-/- Sup of two monomial ideals is the monomial ideal of the union -/
+/-- Supremum of two monomial ideals is the monomial ideal of the union. -/
 theorem sup_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     MonomialIdeal σ R s ⊔ MonomialIdeal σ R t = MonomialIdeal σ R (s ∪ t) := by
   rw [← Ideal.span_union, ← Set.image_union]
 
-/- Supremum of any number of monomial ideals is a monomial ideal of the union-/
+/-- Supremum of any number of monomial ideals is a monomial ideal of the union. -/
 theorem iSup_monomial_ideal {ι : Type*} (p : ι → Set (σ →₀ ℕ)) :
     ⨆ i, MonomialIdeal σ R (p i) = MonomialIdeal σ R (⋃ i, p i) := by
   rw [← Ideal.span_iUnion, ← Set.image_iUnion]
 
+/-- Support of a polynomial is in an ideal `I` implies the polynomial is in the `I`. -/
+theorem aux {R : Type*} [CommRing R]
+    {I : Ideal (MvPolynomial σ R)} {p : MvPolynomial σ R}
+    (h : ∀ xi ∈ p.support, (xi : MvPolynomial σ R) ∈ I) : p ∈ I := by
+  rw [← support_sum_monomial_coeff p]
+  apply Ideal.sum_mem _ fun i hi ↦ ?_
+  have : (monomial i) (coeff i p) = C (coeff i p) * (monomial i) (1 : R) := by
+    rw [@C_mul_monomial, mul_one]
+  rw [this]
+  apply Ideal.mul_mem_left
+  exact h i hi
+
+/-- An ideal `I` is monomial if and only if it includes the support of all polynomials in `I`. -/
 theorem monomial_ideal_iff_support_mem (I : Ideal (MvPolynomial σ R)) :
     (∃ (s : Set (σ →₀ ℕ)), I = MonomialIdeal σ R s) ↔
     ∀ p : I, ∀ xi ∈ p.1.support, (xi : MvPolynomial σ R) ∈ I := by
@@ -146,16 +159,15 @@ theorem monomial_ideal_iff_support_mem (I : Ideal (MvPolynomial σ R)) :
       simp only [Std.le_refl, and_true]
       rw [@Set.mem_setOf_eq]
       use ⟨a, h⟩
-    · suffices ∀ xi ∈ a.support, (xi : MvPolynomial σ R) ∈ I by sorry
+    · suffices ∀ xi ∈ a.support, (xi : MvPolynomial σ R) ∈ I from aux this
       intro xi hxi
       rw [mem_ideal_span_monomial_image] at h
       rcases h xi hxi with ⟨d, hd⟩
       rcases hd.1 with ⟨e, he⟩
-      suffices (monomial d 1) ∈ I by sorry
-      apply ha e
-      exact he
-    -- Just have to use the fact the support is in the ideal
+      have hd_dvd_xi : (d : MvPolynomial σ R) ∣ xi := by rw [← coe_dvd]; exact hd.2
+      exact Ideal.mem_of_dvd I hd_dvd_xi (ha e d he)
 
+/-- Infimum of two monomial ideals is a monomial ideal generated by the `lcm` of elements. -/
 theorem inf_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     MonomialIdeal σ R s ⊓ MonomialIdeal σ R t =
     MonomialIdeal σ R {m | ∃ xs ∈ s, ∃ xt ∈ t, m = max xs xt} := by
@@ -183,6 +195,7 @@ theorem inf_monomial_ideal (s t : Set (σ →₀ ℕ)) :
       rw [hl.2]
       exact ⟨hl.1, le_sup_right⟩
 
+/-- Product of two monomial ideals is generated by the product of generators. -/
 theorem mul_monomial_ideal (s t : Set (σ →₀ ℕ)) :
     MonomialIdeal σ R s * MonomialIdeal σ R t =
     MonomialIdeal σ R {z | ∃ x ∈ s, ∃ y ∈ t, x + y = z} := by
@@ -192,5 +205,7 @@ theorem mul_monomial_ideal (s t : Set (σ →₀ ℕ)) :
   rw [Set.mem_mul]
   simp only [Set.mem_image, exists_exists_and_eq_and, monomial_mul, mul_one, Set.mem_setOf_eq,
     exists_exists_and_exists_and_eq_and]
+
+
 
 end Monomial

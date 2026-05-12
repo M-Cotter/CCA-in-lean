@@ -5,6 +5,7 @@ noncomputable section
 
 variable {σ R : Type*} [CommRing R] [Nontrivial R]
 
+open MvPolynomial
 namespace Monomial
 
 /- Auxiliary lemma that monomials are linearly independent on an ideal. -/
@@ -43,4 +44,3 @@ def MonomialsBasisMonIdeal (s : Set (σ →₀ ℕ)) :
     sorry
 
 end Monomial
-end MvPolynomial

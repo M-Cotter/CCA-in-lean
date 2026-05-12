@@ -1,3 +1,4 @@
+/-
 import Mathlib
 
 noncomputable section
@@ -62,7 +63,7 @@ def idealMonomials2 (I : Ideal (MvPolynomial σ R)) :=
 #check MvPolynomial.mem_ideal_span_monomial_image
 
 lemma supp_in_ideal (I : MonomialIdeal σ R) :
-    ∀ (p : MvPolynomial σ R), 
+    ∀ (p : MvPolynomial σ R),
     p ∈ I.ideal → (p.support : Set (σ →₀ ℕ)) ⊆ (idealMonomials2 I.ideal) := by
   intro p hpI m hmp
 
@@ -79,3 +80,4 @@ lemma monomial_ideal_gen_ (I : MonomialIdeal σ R) :
 
 def monomial_basis_mideal (I : MonomialIdeal σ R) :
    Module.Basis (σ →₀ ℕ) R I.ideal := sorry
+  -/
