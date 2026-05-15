@@ -1,15 +1,39 @@
-import Mathlib.Algebra.MvPolynomial.Basic
-import Mathlib.RingTheory.MvPolynomial
-import Mathlib.Algebra.MvPolynomial.Division
-import Mathlib.RingTheory.MvPolynomial.Ideal
-import Mathlib
+/-
+Copyright (c) 2026 Matthew Cotter. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Matthew Cotter
+-/
+module
 
+public import Mathlib.RingTheory.MvPolynomial.Ideal
+
+/-!
+# Monomial Ideals
+
+This file defines the basic structure of monomial ideals, in particular we related the
+structure of monomials to that of their exponent vector.
+
+# Main Definitions
+
+# Main Results
+
+# TODO
+
+Maybe some of what's here could be more elegantly stated if we used LowerSet/UpperSets
+instead.
+
+Finite intersection of monomial ideals is a monomial ideal (already showed the intersection
+of two is a monomial ideal).
+-/
+
+public section
 noncomputable section
 
 variable {σ R : Type*} [CommRing R] [Nontrivial R]
 
 open MvPolynomial
 namespace Monomial
+
 /-- Coercion from Monomial to MvPolynomial in the obvious sense. -/
 instance : Coe (σ →₀ ℕ) (MvPolynomial σ R) where
   coe x := monomial x 1
@@ -46,6 +70,8 @@ abbrev MonomialIdeal (σ R : Type*) [CommRing R] [Nontrivial R]
   (s : Set (σ →₀ ℕ)) : Ideal (MvPolynomial σ R) :=
   Ideal.span ((fun exp ↦ monomial exp (1 : R)) '' s)
 
+/-- Monomial ideal of the bottom of the lattice of subsets (empty set) is the bottom
+  of the lattice of ideals, i.e. `(0)`. -/
 @[simp]
 lemma monomial_ideal_of_bot : MonomialIdeal σ R ⊥ = ⊥ := by
   simp only [Set.bot_eq_empty, Submodule.span_eq_bot, Set.image_empty, Set.mem_empty_iff_false,
@@ -56,7 +82,8 @@ lemma monomial_ideal_of_empty : MonomialIdeal σ R ∅ = ⊥ := by
   simp only [Submodule.span_eq_bot, Set.image_empty, Set.mem_empty_iff_false,
     IsEmpty.forall_iff, implies_true]
 
-/-- Auxiliary lemma about ideal spans. -/
+/-- Auxiliary lemma about ideal spans. States if you have a set `t` compose of multiples
+  of elements of `s`, then the ideal `(t)` is contained in `(s)`. -/
 lemma Ideal.span_le_span {R : Type*} [CommRing R] (s t : Set R) :
     (∀ x ∈ t, ∃ y ∈ s, y ∣ x) → Ideal.span t ≤ Ideal.span s := by
   rw [Ideal.span_le]
@@ -67,7 +94,8 @@ lemma Ideal.span_le_span {R : Type*} [CommRing R] (s t : Set R) :
   · exact hr_dvd_a
   · exact Submodule.mem_span_of_mem hrs
 
-/- A monomial is in a monomial ideal if it is divisible by one of the elements -/
+
+/-- A monomial is in a monomial ideal if it is divisible by one of the elements. -/
 theorem mem_monomial_ideal_iff (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) :
   (m : MvPolynomial σ R) ∈ MonomialIdeal σ R s ↔ ∃ n ∈ s, n ≤ m := by
   rw [mem_ideal_span_monomial_image]
@@ -83,7 +111,7 @@ theorem mem_monomial_ideal_iff (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) :
     rwa [this]
 
 /-- For sets of monomial `s` and `t`, the ideal corresponding to `s` is contained in `t`
-  if and only if each element of `s` divides an element of `t`.  -/
+  if and only if each element of `s` divides an element of `t`. -/
 theorem monomial_ideal_le_monomial_ideal (s t : Set (σ →₀ ℕ)) :
   (∀ m ∈ t, ∃ n ∈ s, n ≤ m) ↔ MonomialIdeal σ R t ≤ MonomialIdeal σ R s := by
   constructor <;> intro h
@@ -205,7 +233,5 @@ theorem mul_monomial_ideal (s t : Set (σ →₀ ℕ)) :
   rw [Set.mem_mul]
   simp only [Set.mem_image, exists_exists_and_eq_and, monomial_mul, mul_one, Set.mem_setOf_eq,
     exists_exists_and_exists_and_eq_and]
-
-
 
 end Monomial
