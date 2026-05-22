@@ -1,11 +1,38 @@
+/-
+Copyright (c) 2026 Matthew Cotter. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Matthew Cotter
+-/
+
 import CcaInLean.MonomialIdeals.Monomial
 import CcaInLean.MonomialIdeals.MinimalGenerators
 import Mathlib
-variable {σ R : Type*} [CommRing R] [Nontrivial R] [DecidableEq σ] [Field k]
 
 open MvPolynomial
 namespace Monomial
 
+/-!
+# GRADING
+
+This file shows that every monomial ideal is homogeneous (in the multigrading), and every
+homogeneous ideal over a field is monomial.
+
+# Main Results
+
+`monomial_ideal_homogeneous`: Monomial ideals are homogeneous in the multigrading.
+`homogeneous_monomial_ideals`: Over a field, homogeneous ideals are monomial in the multigrading.
+
+# TODO
+
+I think there's something to do with quotients being graded, I'm not sure though. I'm looking at
+Herzog-Hibi pg. 6.
+
+-/
+
+variable {k σ R : Type*} [CommRing R] [Nontrivial R] [DecidableEq σ] [Field k]
+
+set_option linter.unusedDecidableInType false -- DecidableEq R is used, why is lean complaining?
+/-- Monomial ideals are homogeneous in the multigrading -/
 theorem monomial_ideal_homogeneous [DecidableEq R] (s : Set (σ →₀ ℕ)) :
     Ideal.IsHomogeneous (AddMonoidAlgebra.grade R) (MonomialIdeal σ R s) := by
   rw [Ideal.IsHomogeneous.iff_exists]
@@ -34,13 +61,8 @@ theorem monomial_ideal_homogeneous [DecidableEq R] (s : Set (σ →₀ ℕ)) :
       exact hn
   · tauto
 
-
-lemma monomial_mem_monomial_ideal (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) (hm : m ∈ s):
-    (monomial m) r ∈ MonomialIdeal σ R s := by
-  sorry
-
-open Classical in
-theorem homogeneous_implies_monomial_ideal {k : Type*} [Field k] (I : Ideal (MvPolynomial σ k)) :
+/-- If `k` is a field, then every homogeneous ideal in a polynomial ring over `k` is homogeneous. -/
+theorem homogeneous_monomial_ideal {k : Type*} [Field k] (I : Ideal (MvPolynomial σ k)) :
     Ideal.IsHomogeneous (AddMonoidAlgebra.grade k) I →
     ∃ (s : Set (σ →₀ ℕ)), I = MonomialIdeal σ k s := by
   intro hHomI
@@ -51,7 +73,8 @@ theorem homogeneous_implies_monomial_ideal {k : Type*} [Field k] (I : Ideal (MvP
     a.1 ≠ 0 → r ≠ 0 ∧ a = monomial i r := by
     intro a ha
     rcases a.2 with ⟨b, hb⟩
-    simp only [Submodule.mem_mk, id_eq, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq] at hb
+    simp only [Submodule.mem_mk, id_eq, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk,
+      Set.mem_setOf_eq] at hb
     use b, (a.1 b)
     intro haneqzero
     have : a.1 = (monomial b) (a.1 b) := by
@@ -61,7 +84,7 @@ theorem homogeneous_implies_monomial_ideal {k : Type*} [Field k] (I : Ideal (MvP
       · simp only [h, ↓reduceIte]
         rfl
       · simp only [h, ↓reduceIte, Finsupp.mem_support_iff] at hb ⊢
-        apply byContradiction (fun b ↦ by apply h; rwa [hb x])
+        apply Classical.byContradiction (fun b ↦ by apply h; rwa [hb x])
     exact ⟨fun hab ↦ by apply haneqzero; rw [this, hab, MvPolynomial.monomial_eq_zero], this⟩
   let B := {m : σ →₀ ℕ | ∃ a ∈ A, ∃ r : k, r ≠ 0 ∧ a = monomial m r}
   use B
@@ -95,3 +118,5 @@ theorem homogeneous_implies_monomial_ideal {k : Type*} [Field k] (I : Ideal (MvP
       rw [hd.2, monomial_eq, smul_eq_mul, ← mul_assoc, ← C_mul, inv_mul_cancel₀]
       · rw [← monomial_eq]
       · exact hd.1
+
+end Monomial

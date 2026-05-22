@@ -3,18 +3,18 @@ Copyright (c) 2026 Matthew Cotter. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matthew Cotter
 -/
-module
 
 import CcaInLean.MonomialIdeals.Monomial
 import Mathlib
-public import Mathlib.Order.WellQuasiOrder
+import Mathlib.Order.WellQuasiOrder
+
 /-!
 # MINIMAL GENERATORS
 
 This file defines the basic structure of monomial ideals, in particular we related the
 structure of monomials to that of their exponent vector.
 
-# MAIN RESULTS
+# Main Results
 
 # TODO
 

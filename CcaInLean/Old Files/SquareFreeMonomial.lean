@@ -1,6 +1,5 @@
+/-
 import CcaInLean.MonomialIdeal
-import Mathlib
-
 import Mathlib
 
 noncomputable section
@@ -111,7 +110,7 @@ structure SquareFreeMonomialIdeal (σ R : Type*) [CommRing R] [Nontrivial R] whe
 def SquareFreeMonomialIdeal.ideal (I : SquareFreeMonomialIdeal σ R) :=
   Ideal.span {m : MvPolynomial σ R | ∃ (i : I.basis), m = i}
 
-/-
+
 theorem poly_supp_in_ideal_iff_monomial (I : Ideal (MvPolynomial σ R)) :
     ∃ (S : Set (σ →₀ ℕ)),
       I = Ideal.span {m : MvPolynomial σ R | ∃ (i : S), m = i}

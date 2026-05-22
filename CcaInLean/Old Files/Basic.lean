@@ -1,3 +1,26 @@
+inductive MyNat where
+| zero : MyNat
+| succ : MyNat → MyNat
+
+def MyAdd : MyNat → MyNat → MyNat :=
+    fun x y ↦
+    match x with
+    | MyNat.zero => y
+    | MyNat.succ k => (MyAdd k y).succ
+
+def MyMul : MyNat → MyNat → MyNat :=
+    fun x y ↦
+    match x with
+    | MyNat.zero => MyNat.zero
+    | MyNat.succ k => MyAdd (MyMul k y) y
+
+def MyPow : MyNat → MyNat → MyNat :=
+    λ x y ↦
+    match y with
+    | MyNat.zero => MyNat.zero.succ
+    | MyNat.succ k => MyMul (MyPow x k) x
+
+
 /-
 import Mathlib
 

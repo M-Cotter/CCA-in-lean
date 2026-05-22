@@ -94,6 +94,16 @@ lemma Ideal.span_le_span {R : Type*} [CommRing R] (s t : Set R) :
   · exact hr_dvd_a
   · exact Submodule.mem_span_of_mem hrs
 
+lemma mem_span_of_mem (s : Set (σ →₀ ℕ)) :
+    ∀ x ∈ s, (x : MvPolynomial σ R) ∈ MonomialIdeal σ R s := by
+  exact fun x hx ↦ Ideal.subset_span (Set.mem_image_of_mem _ hx)
+
+lemma monomial_mem_monomial_ideal {r : R} (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) (hm : m ∈ s) :
+    (monomial m) r ∈ MonomialIdeal σ R s := by
+  rw [MvPolynomial.monomial_eq]
+  apply Ideal.mul_mem_left
+  rw [← one_mul (m.prod fun n e ↦ X n ^ e), ← C_1, ← MvPolynomial.monomial_eq]
+  exact mem_span_of_mem _ _ hm
 
 /-- A monomial is in a monomial ideal if it is divisible by one of the elements. -/
 theorem mem_monomial_ideal_iff (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) :
