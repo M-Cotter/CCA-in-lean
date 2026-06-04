@@ -5,8 +5,8 @@ Authors: Matthew Cotter
 -/
 
 import CcaInLean.MonomialIdeals.Monomial
-import Mathlib
 import Mathlib.Order.WellQuasiOrder
+import Mathlib.Data.Finsupp.PWO
 
 /-!
 # MINIMAL GENERATORS
@@ -66,13 +66,10 @@ a finite set to a well ordered set. -/
  is finite. -/
 theorem minimal_finite [Finite σ] (s : Set (σ →₀ ℕ)) :
     {m | Minimal (· ∈ s) m}.Finite := by
-  have h : IsAntichain (· ≤ ·) {m | Minimal (· ∈ s) m} := by
-    intro a ha b hb haneqb haleb
-    simp only [minimal_iff, Set.mem_setOf_eq] at ha hb
-    apply haneqb
-    symm
-    apply hb.2 ha.1 haleb
-  exact WellQuasiOrderedLE.finite_of_isAntichain h
+  apply WellQuasiOrderedLE.finite_of_isAntichain
+  intro a ha b hb haneqb haleb
+  simp only [minimal_iff, Set.mem_setOf_eq] at ha hb
+  exact haneqb <| Eq.symm <| hb.2 ha.1 haleb
 
 /-- If two sets of monomials generate the same monomial ideal then their minimal
   elements are equal. -/
@@ -110,8 +107,7 @@ theorem monomial_ideals_equal_same_minimal [Finite σ] (s t : Set (σ →₀ ℕ
 theorem minimal_union_subset_union_minimal (s t : Set (σ →₀ ℕ)) :
     {m | Minimal (· ∈ (s ∪ t)) m} ⊆
     {m | Minimal (· ∈ s) m} ∪ {m | Minimal (· ∈ t) m} := by
-  intro x hx
-  simp only [Set.mem_union, Set.mem_setOf_eq] at *
-  exact Minimal.or hx
+  intro _ h
+  simp [Minimal.or h] at *
 
 end Monomial

@@ -20,8 +20,7 @@ def SqFreeMono : Finset σ → (σ →₀ ℕ) :=
     {
       support := s
       toFun := Set.indicator s (fun x ↦ 1)
-      mem_support_toFun := by simp only [ne_eq, Set.indicator_apply_eq_zero, SetLike.mem_coe,
-        one_ne_zero, imp_false, Decidable.not_not, implies_true]
+      mem_support_toFun := by simp
     }
 
 /- Given a set of finite sets of vertices (no restriction), the monomial ideal
@@ -380,7 +379,10 @@ theorem monomial_ideal_radical_eq [IsReduced R] (s : Set (σ →₀ ℕ)) (m : M
   · intro p ⟨k, hp⟩
     rw [mem_ideal_span_monomial_image] at hp ⊢
     intro xi hxi
+    -- For each `xi` in the support of `p` we must find a dividing `yi`, since we know `p ^ k`
+    -- is in the ideal, we can take a `yi` from there.
     have : ∃ yi ∈ (p ^ k).support, MonoRoot yi ≤ xi := by
+      -- We obtain the smallest element in the monomial order whose support is contained in `xi`, `wi`
       let A : Set (σ →₀ ℕ) := {m ∈ p.support | m.support ≤ xi.support}
       have : A.Nonempty := ⟨xi, hxi, le_refl _⟩
       obtain ⟨w, ⟨wi, hwi⟩, hw⟩ := WellFounded.has_min m.wf.wf (m.toSyn '' A)
@@ -388,6 +390,9 @@ theorem monomial_ideal_radical_eq [IsReduced R] (s : Set (σ →₀ ℕ)) (m : M
       use k • wi
       rw [Set.mem_setOf_eq] at hwi
       constructor
+        -- This element is preserved in the support under taking powers, this argument is a little
+        -- intimidating as is I will come back to this tomorrow but it just says that it must be a sum
+        -- of support-contained elements, since wi is the least it can only be `k • wi`.
       · have (k : ℕ) : coeff (k • wi) (p ^ k) = (coeff (wi) p) ^ k := by
           induction k with
           | zero => rw [zero_smul, pow_zero, pow_zero, coeff_one, if_pos]; rfl
@@ -471,7 +476,8 @@ theorem monomial_ideal_radical_eq [IsReduced R] (s : Set (σ →₀ ℕ)) (m : M
     · calc
         MonoRoot zi ≤ MonoRoot yi := mono_root_mono _ _ hzi.2
         _ ≤ xi := hyi.2
-  · intro p hp
+  · -- Other direction where we show the ideal of roots is contained in the radical.
+    intro p hp
     suffices ∀ xi ∈ p.support, (xi : MvPolynomial σ R) ∈ (MonomialIdeal σ R s).radical by sorry
     intro xi hxi
     rw [mem_radical_monomial_iff]

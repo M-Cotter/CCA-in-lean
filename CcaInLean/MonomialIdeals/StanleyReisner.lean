@@ -42,4 +42,10 @@ def AlexDual [Fintype σ] (Δ : LowerSet (Finset σ)) : LowerSet (Finset σ) whe
     contrapose hs
     exact Δ.lower' (sdiff_le_sdiff (le_refl _) hst) hs
 
+theorem alex_dual_alex_dual [Fintype σ] (Δ : LowerSet (Finset σ)) :
+    AlexDual (AlexDual Δ) = Δ := by
+  unfold AlexDual
+  ext
+  simp
+
 end Monomial
