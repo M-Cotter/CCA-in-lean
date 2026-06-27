@@ -41,7 +41,7 @@ namespace Monomial
 /-- Shorthand for existing mathlib monomial ideal. -/
 abbrev MonomialIdeal (σ R : Type*) [CommRing R] [Nontrivial R]
   (s : Set (σ →₀ ℕ)) : Ideal (MvPolynomial σ R) :=
-  Ideal.span ((fun exp ↦ monomial exp (1 : R)) '' s)
+  Ideal.span <| (fun exp ↦ monomial exp (1 : R)) '' s
 
 /-- Monomial ideal of the bottom of the lattice of subsets (empty set) is the bottom
   of the lattice of ideals, i.e. `(0)`. -/
@@ -53,7 +53,7 @@ lemma monomial_ideal_of_empty : MonomialIdeal σ R ∅ = ⊥ := by simp
 
 /-- Auxiliary lemma about ideal spans. States if you have a set `t` compose of multiples
   of elements of `s`, then the ideal `(t)` is contained in `(s)`. -/
-lemma Ideal.span_le_span {R : Type*} [CommRing R] (s t : Set R) (hx : ∀ x ∈ t, ∃ y ∈ s, y ∣ x) :
+lemma Ideal.span_le_span {R : Type*} [CommRing R] {s t : Set R} (hx : ∀ x ∈ t, ∃ y ∈ s, y ∣ x) :
     Ideal.span t ≤ Ideal.span s := by
   rw [Ideal.span_le]
   intro a hat
@@ -64,7 +64,7 @@ lemma mem_span_of_mem (s : Set (σ →₀ ℕ)) :
     ∀ x ∈ s, monomial x 1 ∈ MonomialIdeal σ R s :=
   fun _ hx ↦ Ideal.subset_span (Set.mem_image_of_mem _ hx)
 
-lemma monomial_mem_monomial_ideal {r : R} (s : Set (σ →₀ ℕ)) (m : σ →₀ ℕ) (hm : m ∈ s) :
+lemma monomial_mem_monomial_ideal {r : R} {s : Set (σ →₀ ℕ)} {m : σ →₀ ℕ} (hm : m ∈ s) :
     (monomial m) r ∈ MonomialIdeal σ R s := by
   rw [MvPolynomial.monomial_eq]
   apply Ideal.mul_mem_left
@@ -127,7 +127,7 @@ theorem support_mem_mem {R : Type*} [CommRing R]
   exact Ideal.mul_mem_left _ _ (h i hi)
 
 /-- An ideal `I` is monomial if and only if it includes the support of all polynomials in `I`. -/
-theorem monomial_ideal_iff_support_mem (I : Ideal (MvPolynomial σ R)) :
+theorem monomial_ideal_iff_support_mem {I : Ideal (MvPolynomial σ R)} :
     (∃ (s : Set (σ →₀ ℕ)), I = MonomialIdeal σ R s) ↔
     ∀ p ∈ I, ∀ xi ∈ p.support, monomial xi 1 ∈ I := by
   constructor

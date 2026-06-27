@@ -1,12 +1,16 @@
 import CcaInLean.Combo.Cascade
 import Mathlib.Order.Lex
 import Mathlib.Combinatorics.Colex
+import Mathlib
 
 #check Finset.Colex.toColex_le_toColex
 
 namespace Finset.Colex
 
 #check Finset.sort
+
+#check Sym.card_sym_eq_multichoose
+
 
 example {n : ℕ} {f g : Fin (n + 1) → ℕ} (hf : StrictMono f) (hg : StrictMono g) :
     toColex (Finset.image f ⊤) ≤ toColex (Finset.image g ⊤) ↔

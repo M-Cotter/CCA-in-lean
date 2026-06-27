@@ -18,11 +18,9 @@ def ComplexOfIdeal (S : Set (Finset σ)) : LowerSet (Finset σ) where
   lower' := fun _ _ hst ha ⟨x, hx⟩ ↦ ha ⟨x, hx.1, le_trans hx.2 hst⟩
 
 theorem mem_complex_of_faces_iff (S : Set (Finset σ)) (s : Finset σ) :
-    s ∈ ComplexOfIdeal S ↔
-    (SqFreeMono s : MvPolynomial σ R) ∉ SquareFreeIdeal σ R S := by
-  unfold ComplexOfIdeal
-  simp only [LowerSet.mem_mk, Set.mem_setOf_eq]
-  rw [not_iff_not, ← sq_free_mono_mem_iff]
+    s ∈ (ComplexOfIdeal S).carrier ↔
+    monomial (SqFreeMono s) 1 ∉ SquareFreeIdeal σ R S := by
+  rw [ComplexOfIdeal, Set.mem_setOf_eq, not_iff_not, ← sq_free_mono_mem_iff]
 
 example (S : Set (Finset σ)) :
   SquareFreeIdeal σ R (ComplexOfIdeal S).carrierᶜ = SquareFreeIdeal σ R S := by
@@ -38,14 +36,11 @@ def AlexDual [Fintype σ] (Δ : LowerSet (Finset σ)) : LowerSet (Finset σ) whe
   carrier := {F | (⊤ \ F) ∉ Δ.carrier}
   lower' := by
     intro s t hst hs
-    rw [LowerSet.carrier_eq_coe, Set.mem_setOf_eq, SetLike.mem_coe] at hs ⊢
+    rw [Set.mem_setOf_eq] at hs ⊢
     contrapose hs
     exact Δ.lower' (sdiff_le_sdiff (le_refl _) hst) hs
 
 theorem alex_dual_alex_dual [Fintype σ] (Δ : LowerSet (Finset σ)) :
-    AlexDual (AlexDual Δ) = Δ := by
-  unfold AlexDual
-  ext
-  simp
+    AlexDual (AlexDual Δ) = Δ := by simp [AlexDual]
 
 end Monomial

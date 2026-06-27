@@ -73,24 +73,23 @@ theorem minimal_finite [Finite σ] (s : Set (σ →₀ ℕ)) :
 
 /-- If two sets of monomials generate the same monomial ideal then their minimal
   elements are equal. -/
-theorem monomial_ideals_equal_same_minimal [Finite σ] (s t : Set (σ →₀ ℕ)) :
-    MonomialIdeal σ R s = MonomialIdeal σ R t →
+theorem monomial_ideals_equal_same_minimal {s t : Set (σ →₀ ℕ)}
+    (hst : MonomialIdeal σ R s = MonomialIdeal σ R t) :
     {m | Minimal (· ∈ s) m} = {m | Minimal (· ∈ t) m} := by
-  intro hseqt
   rw [← monomial_ideal_minimal_eq, ← monomial_ideal_minimal_eq t,
-       ← monomial_ideal_eq_monomial_ideal] at hseqt
+       ← monomial_ideal_eq_monomial_ideal] at hst
   ext x
   constructor <;> intro hx
-  · rcases hseqt.1 x hx with ⟨a, ha⟩
-    rcases hseqt.2 a ha.1 with ⟨b, hb⟩
+  · rcases hst.1 x hx with ⟨a, ha⟩
+    rcases hst.2 a ha.1 with ⟨b, hb⟩
     have hxeqb : x = b := le_antisymm (hx.2 hb.1.1 (le_trans hb.2 ha.2)) (le_trans hb.2 ha.2)
     have haeqb : a = b := by
       rw [hxeqb] at ha
       exact le_antisymm ha.2 hb.2
     rw [hxeqb, ← haeqb]
     exact ha.1
-  · rcases hseqt.2 x hx with ⟨a, ha⟩
-    rcases hseqt.1 a ha.1 with ⟨b, hb⟩
+  · rcases hst.2 x hx with ⟨a, ha⟩
+    rcases hst.1 a ha.1 with ⟨b, hb⟩
     have hxeqb : x = b := le_antisymm (hx.2 hb.1.1 (le_trans hb.2 ha.2)) (le_trans hb.2 ha.2)
     have haeqb : a = b := by
       rw [hxeqb] at ha
