@@ -14,23 +14,23 @@ def shade (𝒜 : Finset (Fin n →₀ ℕ)) : Finset (Fin n →₀ ℕ) :=
 
 /-- Shadow of an inidividual element. -/
 noncomputable
-def iShadow (v : Fin n →₀ ℕ) : Finset (Fin n →₀ ℕ) :=
+def iShadow1 (v : Fin n →₀ ℕ) : Finset (Fin n →₀ ℕ) :=
     {f ∈ finsetIcc 0 v | ∃ i : Fin n, f + Finsupp.single i 1 = v}
 
 /-- Shadow of a family, notably this is a computable definition. -/
 noncomputable
-def shadow (𝒜 : Finset (Fin n →₀ ℕ)) : Finset (Fin n →₀ ℕ) := 𝒜.biUnion iShadow
+def shadow (𝒜 : Finset (Fin n →₀ ℕ)) : Finset (Fin n →₀ ℕ) := 𝒜.biUnion iShadow1
 
-lemma mem_iShadow {v : Fin n →₀ ℕ} :
-    v ∈ iShadow s ↔ ∃ i : Fin n, (v + Finsupp.single i 1) = s := by
-  simp [iShadow, finset_mem_Icc]
+lemma mem_iShadow1 {v : Fin n →₀ ℕ} :
+    v ∈ iShadow1 s ↔ ∃ i : Fin n, (v + Finsupp.single i 1) = s := by
+  simp [iShadow1, finset_mem_Icc]
   intro x rfl
   simp
 
 /-- Member of the shadow if and only if -/
 lemma mem_shadow {v : Fin n →₀ ℕ} :
     v ∈ shadow 𝒜 ↔ ∃ i : Fin n, (v + Finsupp.single i 1) ∈ 𝒜 := by
-  simp [shadow, iShadow]
+  simp [shadow, iShadow1]
   apply Iff.intro
   · exact fun ⟨i, hi⟩ ↦ ⟨i, hi.1⟩
   exact fun ⟨i, hi⟩ ↦ ⟨i, hi, by  simp [finset_mem_Icc]⟩
@@ -79,12 +79,19 @@ lemma ne_zero_shade_shadow {𝒜 : Finset (Fin (n + 1) →₀ ℕ)} {x : Fin (n 
       exact ha
     rw [tsub_add_cancel_iff_le.mpr this]
 
-theorem subset_shade_shadow {𝒜 : Finset (Fin (n + 1) →₀ ℕ)} (h𝒜 : 0 ∉ 𝒜) : 𝒜 ⊆ shade (shadow 𝒜) := by
-  intro x hx
-  apply ne_zero_shade_shadow (fun h ↦ h𝒜 <| h ▸ hx) hx
+theorem subset_shade_shadow {𝒜 : Finset (Fin (n + 1) →₀ ℕ)} (h𝒜 : 0 ∉ 𝒜) : 𝒜 ⊆ shade (shadow 𝒜) :=
+  fun _ hx ↦ ne_zero_shade_shadow (fun h ↦ h𝒜 <| h ▸ hx) hx
 
-theorem subset_shade_iff_shadow_subset :
-    𝒜 ⊆ shade ℬ ↔ shadow 𝒜 ⊆ ℬ := sorry
+#print axioms subset_shade_shadow
+
+open Classical in
+noncomputable def LevelSet (𝒜 : Set (Fin n →₀ ℕ)) (k : ℕ) : Finset (Fin n →₀ ℕ) :=
+  {x ∈ Finset.finsuppAntidiag Finset.univ k | x ∈ 𝒜}
+
+example {𝒜 : Set (Fin n →₀ ℕ)} :
+    ∀ x ∈ 𝒜, ∀ y, y ≤ x → y ∈ 𝒜 ↔ ∀ k, LevelSet 𝒜 k ⊆ shadow (LevelSet 𝒜 (k + 1)) := by
+  sorry
+
 
 /-- Shade of the right segment is the right segment times the least variablle. -/
 theorem shade_rightSeg {m : Fin (n + 1) →₀ ℕ} :

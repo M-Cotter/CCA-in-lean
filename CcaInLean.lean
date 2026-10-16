@@ -1,1 +1,13 @@
-import CcaInLean.Basic
+import CcaInLean.Macaulay.Expansion
+import CcaInLean.Macaulay.LexSegment
+import CcaInLean.Macaulay.Shadow
+import CcaInLean.MacaulayAnderson.Lemma1
+import CcaInLean.MacaulayAnderson.Lemma2
+import CcaInLean.MacaulayAnderson.Lemma3
+import CcaInLean.MonomialIdeals.Colon
+import CcaInLean.MonomialIdeals.Grading
+import CcaInLean.MonomialIdeals.MinimalGenerators
+import CcaInLean.MonomialIdeals.Monomial
+import CcaInLean.MonomialIdeals.PrimaryDecomposition
+import CcaInLean.MonomialIdeals.SquareFree
+import CcaInLean.MonomialIdeals.StanleyReisner
