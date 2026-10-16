@@ -1,26 +1,12 @@
 import Mathlib
-import CcaInLean.Combo.Cascade
 
 variable {n : ℕ} {m : Fin (n + 1) →₀ ℕ}
-
-lemma lt_def {s t : Fin n →₀ ℕ} : toLex s < toLex t ↔
-  ∃ i : Fin n, (∀ j : Fin n, j < i → s j = t j) ∧ (s i) < (t i) := by rfl
-
-/-- Helper lemma for lex lt implies the first entries are le. -/
-lemma lt_imp_zero {s t : Fin (n + 1) →₀ ℕ} (hst : toLex s < toLex t) :
-    s 0 ≤ t 0 := by
-  rw [lt_def] at hst
-  obtain ⟨a, ha₁, ha₂⟩ := hst
-  by_cases h : a = 0
-  · rw [← h]
-    exact le_of_lt ha₂
-  · exact le_of_eq (ha₁ 0 (Fin.pos_iff_ne_zero.mpr h))
 
 /-- All monomials strictly greater than `m`. -/
 def RightSeg (m : Fin n →₀ ℕ) : Finset (Fin n →₀ ℕ) :=
   {x ∈ Finset.finsuppAntidiag Finset.univ (∑ i, m i) | toLex m < toLex x}
 
-/-- All monomials strictly greater than `m`. -/
+/-- All monomials greater than or equal to `m`. -/
 def cRightSeg (m : Fin n →₀ ℕ) : Finset (Fin n →₀ ℕ) :=
   {x ∈ Finset.finsuppAntidiag Finset.univ (∑ i, m i) | toLex m ≤ toLex x}
 
@@ -33,10 +19,8 @@ lemma mem_crightSeg {m x : Fin n →₀ ℕ} : x ∈ cRightSeg m
     ↔ ∑ i, x i = ∑ i, m i ∧ toLex m ≤ toLex x := by simp [cRightSeg]
 
 @[simp]
-lemma not_mem_rightSeg_open {m : Fin n →₀ ℕ} : m ∉ RightSeg m := by
-  intro hm
-  rw [mem_rightSeg, lt_self_iff_false] at hm
-  exact hm.2
+lemma not_mem_rightSeg_open {m : Fin n →₀ ℕ} : m ∉ RightSeg m :=
+  fun hm ↦ (lt_self_iff_false _).mp (mem_rightSeg.mp hm).2
 
 lemma crightseg_eq {m : Fin n →₀ ℕ} :
     cRightSeg m = {m} ∪ RightSeg m := by
@@ -45,6 +29,29 @@ lemma crightseg_eq {m : Fin n →₀ ℕ} :
     Finset.mem_insert, mem_rightSeg]
   grind only [#63c0, #0658, #2fc3, #0f55]
 
+/-- Right segments are monotone. -/
+theorem cRightSeg_mono {x y : Fin n →₀ ℕ} (hxy : toLex x ≤ toLex y) (hsum : ∑ i, x i = ∑ i, y i) :
+    cRightSeg y ≤ cRightSeg x := by
+  intro i hi
+  rw [mem_crightSeg] at hi ⊢
+  exact ⟨hsum ▸ hi.1, le_trans hxy hi.2⟩
+
+/-- Right segments are total in the sense the are always comparable by inclusion. -/
+theorem cRightSeg_total {x y : Fin n →₀ ℕ} (hsum : ∑ i, x i = ∑ i, y i) :
+    cRightSeg x ≤ cRightSeg y ∨ cRightSeg y ≤ cRightSeg x := by
+  obtain h₁ | h₂ := le_or_gt (toLex x) (toLex y)
+  · exact Or.inr <| cRightSeg_mono h₁ hsum
+  · exact Or.inl <| cRightSeg_mono (le_of_lt h₂) hsum.symm
+
+/-- Cardinality of the closed right segment is one plus the cardinality of the right segment. -/
+lemma crightseg_card {m : Fin n →₀ ℕ} :
+    Finset.card (cRightSeg m) = 1 + Finset.card (RightSeg m) := by
+  rw [crightseg_eq, Finset.card_union, Finset.card_singleton,
+      Finset.singleton_inter_of_notMem, Finset.card_empty, Nat.sub_zero]
+  exact not_mem_rightSeg_open
+
+/-- For all `k ≤ n multichoose a` there exists a right segment of size `k` of elements with sum `a`
+     in `n` variables. -/
 theorem exists_cRightSeg {k a : ℕ} (hk : k ≤ Nat.multichoose n a)
     (hk0 : k ≠ 0) :
     ∃ m : Fin n →₀ ℕ,
@@ -63,23 +70,27 @@ theorem exists_cRightSeg {k a : ℕ} (hk : k ≤ Nat.multichoose n a)
   · sorry
   · sorry
 
-theorem cRightSeg_mono {x y : Fin n →₀ ℕ} (hxy : toLex x ≤ toLex y) (hsum : ∑ i, x i = ∑ i, y i) :
-    cRightSeg y ≤ cRightSeg x := by
-  intro i hi
-  rw [mem_crightSeg] at hi ⊢
-  exact ⟨hsum ▸ hi.1, le_trans hxy hi.2⟩
+lemma Finsupp.Lex.lt_def {s t : Fin n →₀ ℕ} : toLex s < toLex t ↔
+  ∃ i : Fin n, (∀ j : Fin n, j < i → s j = t j) ∧ (s i) < (t i) := by rfl
 
-theorem cRightSeg_total {x y : Fin n →₀ ℕ} (hsum : ∑ i, x i = ∑ i, y i) :
-    cRightSeg x ≤ cRightSeg y ∨ cRightSeg y ≤ cRightSeg x := by
-  obtain h₁ | h₂ := le_or_gt (toLex x) (toLex y)
-  sorry
-  sorry
+/-- Helper lemma for lex lt implies the first entries are le. -/
+lemma lt_imp_zero {s t : Fin (n + 1) →₀ ℕ} (hst : toLex s < toLex t) :
+    s 0 ≤ t 0 := by
+  rw [Finsupp.Lex.lt_def] at hst
+  obtain ⟨a, ha₁, ha₂⟩ := hst
+  by_cases h : a = 0
+  · rw [← h]
+    exact le_of_lt ha₂
+  · exact le_of_eq (ha₁ 0 (Fin.pos_iff_ne_zero.mpr h))
 
-lemma crightseg_card {m : Fin n →₀ ℕ} :
-    Finset.card (cRightSeg m) = 1 + Finset.card (RightSeg m) := by
-  rw [crightseg_eq, Finset.card_union, Finset.card_singleton,
-      Finset.singleton_inter_of_notMem, Finset.card_empty, Nat.sub_zero]
-  exact not_mem_rightSeg_open
+lemma Finsupp.single_lt_gt_lex {a b : Fin n} (hab : a < b) :
+    toLex (Finsupp.single b 1 : Fin n →₀ ℕ) < toLex (Finsupp.single a 1) := by
+  rw [Finsupp.Lex.lt_def]
+  use a
+  constructor
+  · intro j hj
+    simp [ne_of_lt hj, ne_of_lt (lt_trans hj hab)]
+  · simp [ne_of_lt hab]
 
 /-- Members of the right segment which share their first value with `m`. -/
 def M0 (m : Fin (n + 1) →₀ ℕ) : Finset (Fin (n + 1) →₀ ℕ) :=
@@ -128,7 +139,7 @@ theorem card_m1 (hm : m 0 + 1 ≤ ∑ i, m i) :
   calc
     _ = Finset.card (Finset.finsuppAntidiag (Finset.univ : Finset (Fin (n + 1))) (∑ i, m i - m 0 - 1)) := by
       have (m x : Fin (n + 1) →₀ ℕ) (hmx : m 0 < x 0) : toLex m < toLex x := by
-        rw [lt_def]
+        rw [Finsupp.Lex.lt_def]
         use 0
         simp [hmx]
       let f : (Fin (n + 1) →₀ ℕ) → (Fin (n + 1) →₀ ℕ) := fun x ↦ x + Finsupp.single 0 (m 0 + 1)
@@ -178,7 +189,7 @@ theorem card_m0 {m : Fin n →₀ ℕ} {s : ℕ} :
       rw [Finsupp.sum_cons₁]
       constructor
       · rw [ha₁.1, Finsupp.sum_cons₁]
-      · rw [lt_def] at ⊢ ha₁
+      · rw [Finsupp.Lex.lt_def] at ⊢ ha₁
         obtain ⟨j, hj₁, hj₂⟩ := ha₁.2
         use j.succ
         simp [hj₂]
@@ -189,7 +200,7 @@ theorem card_m0 {m : Fin n →₀ ℕ} {s : ℕ} :
     · simp at h ⊢
       use i.tail
       rw [← h.2.2, Finsupp.cons_tail]
-      obtain ⟨a, ha₁, ha₂⟩ := lt_def.mp h.2.1
+      obtain ⟨a, ha₁, ha₂⟩ := Finsupp.Lex.lt_def.mp h.2.1
       induction a using Fin.cases with
       | zero =>
         by_contra!
@@ -202,7 +213,7 @@ theorem card_m0 {m : Fin n →₀ ℕ} {s : ℕ} :
             _ = ∑ j, Finsupp.cons (i 0) i.tail j := by rw [Finsupp.sum_cons₁]
             _ = ∑ j, Finsupp.cons s m j := by rw [Finsupp.cons_tail, ← h.1]
             _ = _ := by rw [Finsupp.sum_cons₁, h.2.2]
-        · rw [lt_def]
+        · rw [Finsupp.Lex.lt_def]
           use c
           constructor
           · intro j hj
@@ -242,7 +253,7 @@ theorem cRightSeg_bot (hm : m 0 = ∑ i, m i) :
   refine ⟨fun ⟨h₁, h₂⟩ ↦ ?_, fun h ↦ by simp [h]⟩
   have m_zero : m = Finsupp.single 0 (m 0) := sorry
   obtain hlt | heq := lt_or_eq_of_le h₂
-  · obtain ⟨j, hj₁, hj₂⟩ := lt_def.mp hlt
+  · obtain ⟨j, hj₁, hj₂⟩ := Finsupp.Lex.lt_def.mp hlt
     sorry
   · exact toLex_inj.mp heq.symm
 
@@ -267,6 +278,10 @@ theorem card_cRightSeg {m : Fin (n + 1) →₀ ℕ} (hn : n ≠ 0) :
     exact card_cRightSeg_cons hlt
   · exact card_cRightSeg_succ heq hn
 
+theorem card_cRightSeg_sum {m : Fin (n + 1) →₀ ℕ} :
+    Finset.card (cRightSeg m) =
+    ∑ i : Fin (n + 1), Nat.choose ((i + ∑ j ∈ Finset.Icc i (Fin.last _), m i) - 1) i := sorry
+
 theorem card_cRightSeg_le {m : Fin (n + 1) →₀ ℕ} :
     Finset.card (cRightSeg m) < Nat.choose (n + ∑ i, m i - m 0) n := by
   have : (n + ∑ i, m i - m 0).choose n = (n + 1).multichoose (∑ i, m i - m 0) := by
@@ -274,191 +289,3 @@ theorem card_cRightSeg_le {m : Fin (n + 1) →₀ ℕ} :
     sorry
     sorry
   sorry
-
-
-
-/-- Monomials which are given by one variable times the monomials in a set. -/
-noncomputable
-def shade (s : Finset (Fin n →₀ ℕ)) : Finset (Fin n →₀ ℕ) :=
-  s.biUnion fun m ↦
-    Finset.image (fun i ↦ m + Finsupp.single i 1) (Finset.univ)
-
-@[simp]
-lemma mem_shade {s : Finset (Fin n →₀ ℕ)} {x : Fin n →₀ ℕ} :
-    x ∈ shade s ↔ ∃ y ∈ s, ∃ i, y + Finsupp.single i 1 = x := by simp [shade]
-
-lemma test {s t : Fin n → ℕ} : toLex s ≤ toLex t ↔ toLex s < toLex t ∨ toLex s = toLex t :=
-  le_iff_lt_or_eq
-
-lemma lt_gt_lex {a b : Fin n} (hab : a < b) :
-    toLex (Finsupp.single b 1 : Fin n →₀ ℕ) < toLex (Finsupp.single a 1) := by
-  rw [lt_def]
-  use a
-  constructor
-  · intro j hj
-    simp [ne_of_lt hj, ne_of_lt (lt_trans hj hab)]
-  · simp [ne_of_lt hab]
-
-lemma le_ge_lex {a b : Fin n} (hab : a ≤ b) :
-    toLex (Finsupp.single b 1 : Fin n →₀ ℕ) ≤ toLex (Finsupp.single a 1) := by
-  cases lt_or_eq_of_le hab with
-  | inl hlt => exact le_of_lt <| lt_gt_lex hlt
-  | inr heq => exact heq ▸ le_refl _
-
-/-- Shade of the right segment is the right segment times the least variablle. -/
-theorem shade_rightSeg {m : Fin (n + 1) →₀ ℕ} :
-    shade (cRightSeg m) = cRightSeg (m + Finsupp.single (Fin.last n) 1) := by
-  ext x
-  simp only [mem_shade, mem_crightSeg, Finsupp.coe_add, Pi.add_apply, toLex_add]
-  constructor <;> intro h
-  · obtain ⟨a, ha, ⟨b, hb⟩⟩ := h
-    constructor
-    · simp [← hb, Finset.sum_add_distrib, ha.1]
-    · cases ha.2 with
-      | inl heq =>
-        simp at heq
-        rw [heq, ← hb, toLex_add, add_le_add_iff_left]
-        apply le_ge_lex (Fin.le_last _)
-      | inr hlt =>
-        apply le_of_lt
-        rw [← hb, toLex_add]
-        apply add_lt_add_of_lt_of_le hlt
-        have := Fin.le_last b
-        rw [le_iff_lt_or_eq] at ⊢ this
-        cases this with
-        | inl hl => left; exact lt_gt_lex hl
-        | inr hr => right; rw [hr]
-  · cases lt_or_eq_of_le h.2 with
-    | inr heq =>
-      rw [← toLex_add, toLex_inj] at heq
-      use x - fun₀ | Fin.last n => 1
-      constructor
-      · simp [← heq]
-      · use Fin.last n
-        rw [tsub_add_cancel_iff_le, ← heq]
-        exact CanonicallyOrderedAdd.le_add_self _ _
-    | inl hlt =>
-      rw [← toLex_add, lt_def] at hlt
-      obtain ⟨a, ha₁, ha₂⟩ := hlt
-      have hxzero : x ≠ 0 := by
-        intro hx0
-        rw [hx0] at h
-        grind =>
-          instantiate only [= Finsupp.zero_apply]
-          lia
-      have hxs : x.support.Nonempty := Finsupp.support_nonempty_iff.mpr hxzero
-      use x - Finsupp.single (Finset.max' _ hxs) 1
-      constructor
-      · simp only [Finsupp.tsub_apply]
-        rw [Finset.sum_tsub_distrib, h.1, Finset.sum_add_distrib]
-        simp only [Finsupp.univ_sum_single_apply, add_tsub_cancel_right, toLex_sub, true_and]
-        · have : a ≤ (Finset.max' _ hxs) := by
-            have : x a ≠ 0 := by
-              intro ha0
-              rw [ha0] at ha₂
-              apply Nat.not_lt_zero _ ha₂
-            apply Finset.le_max'
-            rwa [Finsupp.mem_support_iff]
-          cases lt_or_eq_of_le this with
-          | inl hl =>
-            apply le_of_lt
-            rw [← toLex_sub, lt_def]
-            use a
-            constructor
-            · intro j hj
-              have hjx : j ≠ x.support.max' hxs := by
-                intro hjx
-                rw [hjx] at hj
-                exact (lt_self_iff_false _).mp (lt_trans hj hl)
-              have hjn : j ≠ Fin.last n := by
-                intro hjn
-                rw [hjn, lt_iff_not_ge] at hj
-                exact hj <| Fin.le_last a
-              simp [hjx]
-              rw [← ha₁ _ hj]
-              simp [hjn]
-            · have : a < Fin.last n := lt_of_lt_of_le hl (Fin.le_last _)
-              simp [ne_of_lt hl, ne_of_lt this] at ⊢ ha₂
-              exact ha₂
-          | inr hr =>
-            rw [← toLex_sub]
-            by_cases hxa : x a = m a + 1
-            · have : x = m + Finsupp.single a 1 := by
-                ext i
-                obtain hlt | heq | hgt := lt_trichotomy a i
-                · have : x i = 0 := by
-                    contrapose! hlt
-                    exact hr ▸ Finset.le_max' _ _ (Finsupp.mem_support_iff.mpr hlt)
-                  rw [this]
-                  have hsum := h.1
-                  rw [Finset.sum_add_distrib, Finsupp.univ_sum_single_apply] at hsum
-                  suffices m i = 0 by simp [ne_of_lt hlt, this]
-                  have : ∑ i, m i = ∑ i ∈ Finset.Icc 0 a, m i := by
-                    calc
-                      _ = ∑ i, x i - 1 := by
-                        rw [hsum, Nat.add_sub_cancel_right]
-                      _ = ∑ i ∈ Finset.Icc 0 a, x i - 1 := by
-                        congr 1
-                        have : Function.support x ⊆ Finset.Icc 0 a := by
-                          intro i hi
-                          rw [Finsupp.fun_support_eq, SetLike.mem_coe] at hi
-                          rw [SetLike.mem_coe, Finset.mem_Icc, hr]
-                          exact ⟨Fin.zero_le _, Finset.le_max' _ _ hi⟩
-                        rw [← finsum_eq_sum_of_support_subset _ this]
-                        exact Eq.symm (finsum_eq_sum_of_fintype _)
-                      _ = ∑ i ∈ Finset.Icc 0 a, m i:= by
-                        rw [Finset.Icc_eq_cons_Ico, Finset.sum_cons, Finset.sum_cons, hxa]
-                        · have : ∑ x_1 ∈ Finset.Ico 0 a, x x_1 = ∑ i ∈ Finset.Ico 0 a, m i := by
-                            apply Finset.sum_congr rfl
-                            intro j hj
-                            rw [Finset.mem_Ico] at hj
-                            rw [show m j = (m + fun₀ | Fin.last n => 1) j by
-                              simp [ne_of_lt <| lt_of_lt_of_le hj.2 (Fin.le_last _)]]
-                            exact (ha₁ j hj.2).symm
-                          rw [this]
-                          simp
-                        exact Fin.zero_le _
-                  contrapose! this
-                  apply ne_of_gt
-                  suffices ∑ i ∈ Finset.Icc 0 a, m i < ∑ i ∈ Finset.Icc 0 a, m i + m i by
-                    apply lt_of_lt_of_le this
-                    rw [add_comm, ← Finset.sum_cons]
-                    apply Finset.sum_le_univ_sum_of_nonneg (fun x ↦ Nat.zero_le _)
-                    exact fun hicc ↦ not_le_of_gt hlt (Finset.mem_Icc.mp hicc).2
-                  lia
-                · simp [← heq, hxa]
-                · simp [ne_of_lt hgt]
-                  have h := ha₁ _ hgt
-                  have : i < Fin.last n := lt_of_lt_of_le hgt (Fin.le_last _)
-                  simp [ne_of_lt this] at h
-                  exact h.symm
-              rw [← hr, this, add_tsub_cancel_right]
-            · apply le_of_lt
-              rw [lt_def]
-              use a
-              constructor
-              · intro j hj
-                simp [← hr, ne_of_lt hj, ← ha₁ _ hj]
-                have : j < Fin.last n := lt_of_lt_of_le hj (Fin.le_last _)
-                simp [ne_of_lt this]
-              · simp [← hr]
-                by_cases hl : a = Fin.last n
-                · simp [hl] at ha₂
-                  lia
-                have : a < Fin.last n := by
-                  apply lt_of_le_of_ne (Fin.le_last _) hl
-                simp [ne_of_lt this] at ha₂
-                lia
-        · intro y _
-          by_cases h : y = x.support.max' hxs <;> simp [h]
-          rw [← Nat.lt_iff_add_one_le, ← Nat.ne_zero_iff_zero_lt, ← Finsupp.mem_support_iff]
-          exact Finset.max'_mem _ hxs
-      · use (Finset.max' _ hxs)
-        rw [tsub_add_cancel_iff_le]
-        intro i
-        by_cases h : i = x.support.max' hxs <;> simp [h]
-        rw [← Nat.lt_iff_add_one_le, ← Nat.ne_zero_iff_zero_lt, ← Finsupp.mem_support_iff]
-        exact Finset.max'_mem _ hxs
-
-theorem card_shade {m : Fin (n + 1) →₀ ℕ} :
-    Finset.card (shade (cRightSeg m)) = Macaulay n (Finset.card (cRightSeg m)) := sorry

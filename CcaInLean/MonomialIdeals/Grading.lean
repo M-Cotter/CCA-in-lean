@@ -40,7 +40,7 @@ theorem monomial_ideal_homogeneous [DecidableEq R] (s : Set (σ →₀ ℕ)) :
     x = ⟨monomial m (1 : R), by
       use m
       intro n hn
-      rw [MvPolynomial.finsupp_support_eq_support, MvPolynomial.support_monomial] at hn
+      rw  [MvPolynomial.finsupp_support_eq_support, MvPolynomial.support_monomial] at hn
       simp only [one_ne_zero, ↓reduceIte, Finset.mem_singleton] at hn
       rwa [id]⟩}
   unfold MonomialIdeal

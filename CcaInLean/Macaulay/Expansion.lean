@@ -8,7 +8,10 @@ module
 public import Mathlib.Data.Nat.Basic
 public import Mathlib.Data.Fin.Tuple.Basic
 public import Mathlib.Tactic
-import Mathlib
+
+namespace Macaulay
+
+open Fin
 
 public section
 
@@ -22,25 +25,20 @@ def BigChoose (n k : ℕ) : ℕ :=
   Nat.findGreatest (fun j ↦ j.choose k ≤ n) (n + k)
 
 /-- Takes a number and returns its Macaulay coefficients as a vector of natural numbers.
- Notably, this will return garbage (the empty vector) when `n = 0`. -/
-def MacaulayExp : ∀ j, ℕ → (Fin j → ℕ)
+ Notably, this will return garbage (the empty vector) when `j = 0`. -/
+def MacaulayExp : ∀ j, (k : ℕ) → (Fin j → ℕ)
   | 0, _ =>  Fin.elim0
   | k + 1, n =>
     let m := BigChoose n (k + 1)
-    Fin.snoc (MacaulayExp k (n - m.choose (k + 1))) m
+    snoc (MacaulayExp k (n - m.choose (k + 1))) m
 
 /-- Big choose `1` is `n`. -/
 @[simp]
-lemma big_choose_one (n : ℕ) : BigChoose n 1 = n := by
-  unfold BigChoose
-  simp only [Nat.choose_one_right, add_le_iff_nonpos_right, nonpos_iff_eq_zero, one_ne_zero,
-    not_false_eq_true, Nat.findGreatest_of_not, Std.le_refl, Nat.findGreatest_eq]
+lemma big_choose_one (n : ℕ) : BigChoose n 1 = n := by simp [BigChoose]
 
 /-- InvMacaulayExp of the empty vector is `0`. -/
 @[simp]
-lemma InvMacaulayExp_elim : InvMacaulayExp (Fin.elim0) = 0 := by
-  unfold InvMacaulayExp
-  simp only [Finset.univ_eq_empty, Finset.sum_empty]
+lemma InvMacaulayExp_elim : InvMacaulayExp (Fin.elim0) = 0 := by simp [InvMacaulayExp]
 
 @[simp]
 lemma InvMacaulayExp_zero {f : Fin 0 → ℕ} : InvMacaulayExp f = 0 := by trivial
@@ -69,63 +67,55 @@ lemma MacaulayExp_zero {k : ℕ} : MacaulayExp 0 k = Fin.elim0 := by rfl
 /-- Inductive definition of MacaulayExp. -/
 @[simp]
 lemma MacaulayExp_succ {k n : ℕ} : MacaulayExp (k + 1) n =
-    Fin.snoc (MacaulayExp k (n - (BigChoose n (k + 1)).choose (k + 1))) (BigChoose n (k + 1))
-  := by rfl
+    snoc (MacaulayExp k (n - (BigChoose n (k + 1)).choose (k + 1))) (BigChoose n (k + 1)) := by rfl
 
 /-- Multichoose is monotone increasing with respect to the bottom entry. -/
 theorem multichoose_mono {n j k : ℕ} (hjk : j ≤ k) :
     (n + j).choose (j + 1) ≤ (n + k).choose (k + 1) := by
-  rw [le_iff_exists_add] at hjk
-  rcases hjk with ⟨a, ha⟩
-  rw [ha]
-  clear ha
+  obtain ⟨a, rfl⟩ := le_iff_exists_add.mp hjk
+  clear hjk
   induction a with
   | zero => rfl
   | succ k hk => exact le_trans hk (Nat.le.intro rfl)
 
 /-- Big choose does what its supposed to (when `0 ≤ k` it returns the biggest `j` such that blah) -/
-theorem big_choose_maximal (n k j : ℕ) : j.choose (k + 1) ≤ n → j ≤ BigChoose n (k + 1) := by
-  intro hjch
-  have : j ≤ n + k := by
-    contrapose! hjch
-    rw [Nat.lt_iff_add_one_le] at ⊢ hjch
-    calc
-      _ = (n + 1).choose 1 := Eq.symm (Nat.choose_one_right _)
-      _ = ((n + 1) + 0).choose (0 + 1) := by norm_num
-      _ ≤ ((n + 1) + k).choose (k + 1) := multichoose_mono (Nat.zero_le k)
-      _ ≤ j.choose (k + 1) := by apply Nat.choose_le_choose; lia
-  exact Nat.le_findGreatest (Nat.le_succ_of_le this) hjch
+theorem big_choose_maximal {n k j : ℕ} (hj : j.choose (k + 1) ≤ n) : j ≤ BigChoose n (k + 1) := by
+  refine Nat.le_findGreatest (Nat.le_succ_of_le ?_) hj
+  contrapose! hj
+  calc
+    _ = ((n + 1) + 0).choose (0 + 1) := by rw [← Nat.choose_one_right n]; norm_num
+    _ ≤ ((n + 1) + k).choose (k + 1) := multichoose_mono (Nat.zero_le k)
+    _ ≤ j.choose (k + 1) := Nat.choose_le_choose _ (by lia)
 
 /-- Big choose is less than `n` (also an intended property). -/
-theorem big_choose_choose_le (n k : ℕ) : (BigChoose n (k + 1)).choose (k + 1) ≤ n := by
-  unfold BigChoose
+theorem big_choose_choose_le {n k : ℕ} : (BigChoose n (k + 1)).choose (k + 1) ≤ n := by
   let P := (fun j : ℕ ↦ j.choose (k + 1) ≤ n)
   change P _
-  apply Nat.findGreatest_spec (Nat.le_add_left 0 _)
-  rw [Nat.choose_zero_succ]
-  exact zero_le _
+  exact Nat.findGreatest_spec (Nat.le_add_left 0 _) <| Nat.choose_zero_succ k ▸ zero_le _
 
 /-- Big choose is monotone increasing. -/
 theorem big_choose_mono (n m k : ℕ) (hnm : n ≤ m) :BigChoose n (k + 1) ≤ BigChoose m (k + 1) :=
-  big_choose_maximal _ _ _ <| le_trans (big_choose_choose_le _ _) hnm
+  big_choose_maximal <| le_trans big_choose_choose_le hnm
 
-/-
-  If I defined everything with straight multichoose then this lemma would be unnecessary,
-  but I wanted to do it this way because Kruskal-Katona (maybe?).
--/
+lemma strict_mono_init {σ : Type} {n : ℕ} [Preorder σ] {f : Fin (n + 1) → σ} (hf : StrictMono f) :
+    StrictMono (init f) := by
+  induction n with
+  | zero => simp [StrictMono]
+  | succ k hk =>
+    rw [Fin.strictMono_iff_lt_succ] at hf ⊢
+    intro i
+    rw [Fin.init, Fin.init, ← succ_castSucc]
+    exact hf i.castSucc
 
 /-- Criterion of strict monotonicity of snoc. -/
-theorem strict_mono_snoc {σ : Type} {n : ℕ} [Preorder σ] (f : Fin (n + 1) → σ) (s : σ) :
-    StrictMono (Fin.snoc f s) ↔ StrictMono f ∧ (f (Fin.last n)) < s := by
+theorem strict_mono_snoc {σ : Type} {n : ℕ} [Preorder σ] {f : Fin (n + 1) → σ} {s : σ} :
+    StrictMono (snoc f s) ↔ StrictMono f ∧ (f (Fin.last n)) < s := by
   constructor <;> intro h
-  · rw [Fin.strictMono_iff_lt_succ] at ⊢ h
-    constructor
-    · intro i
+  · constructor
+    · have : Fin.init (snoc f s : Fin (n + 2) → σ) = f := by norm_num
+      exact this.symm ▸ strict_mono_init h
+    · rw [Fin.strictMono_iff_lt_succ] at h
       calc
-        _ = (Fin.snoc f s : Fin (n + 2) → σ) i.castSucc.castSucc := by rw [Fin.snoc_castSucc]
-        _ < (Fin.snoc f s : Fin (n + 2) → σ) i.castSucc.succ := h _
-        _ = f i.succ := by rw [← Fin.castSucc_succ, Fin.snoc_castSucc]
-    · calc
         _ = ((Fin.snoc f s) : Fin (n + 2) → σ) (Fin.last n).castSucc := by rw [Fin.snoc_castSucc]
         _ < ((Fin.snoc f s) : Fin (n + 2) → σ) (Fin.last n).succ := h _
         _ = s := by simp only [Fin.succ_last, Nat.succ_eq_add_one, Fin.snoc_last]
@@ -138,12 +128,9 @@ theorem strict_mono_snoc {σ : Type} {n : ℕ} [Preorder σ] (f : Fin (n + 1) �
       rw [← Fin.castSucc_succ, Fin.snoc_castSucc]
       apply h.1
 
-lemma strict_mono_init {σ : Type} {n : ℕ} [Preorder σ] {f : Fin (n + 1) → σ} (hf : StrictMono f) :
-    StrictMono (Fin.init f) := by
-  sorry
-
 /-- MacaulayExp is strict mono (the greedy algorithm does what we want). -/
-theorem MacaulayExp_strict_mono (j : ℕ) : ∀ n, StrictMono (MacaulayExp (j + 1) n) := by
+@[simp]
+theorem MacaulayExp_strict_mono' (j : ℕ) : ∀ n, StrictMono (MacaulayExp (j + 1) n) := by
   induction j with
   | zero => unfold StrictMono; simp
   | succ k hk =>
@@ -168,8 +155,8 @@ theorem MacaulayExp_strict_mono (j : ℕ) : ∀ n, StrictMono (MacaulayExp (j + 
         calc
           _ ≤ nj.choose (k + 2) + nj1.choose (k + 1) := this
           _ ≤ nj.choose (k + 2) + (n - nj.choose (k + 2)) :=
-            add_le_add (le_refl _) (big_choose_choose_le _ _)
-          _ = n := Nat.add_sub_of_le (big_choose_choose_le _ _)
+            add_le_add (le_refl _) big_choose_choose_le
+          _ = n := Nat.add_sub_of_le big_choose_choose_le
       linarith
 
 -- Honestly, it might be easier to prove ts directly, as opposed to using hockey sticks.
@@ -278,24 +265,18 @@ theorem big_choose_InvMacaulayExp (n : ℕ) (f : Fin (n + 1) → ℕ) (hf : Stri
   apply le_antisymm
   · rw [Nat.le_iff_lt_add_one, lt_iff_not_ge]
     exact (Nat.choose_le_choose (n + 1)).mt <| not_le.mpr <|
-      lt_of_le_of_lt (big_choose_choose_le _ _) (InvMacaulayExp_lt_choose hf)
-  · have ts : (f (Fin.last n)).choose (n + 1) ≤ InvMacaulayExp f := by
-      unfold InvMacaulayExp
-      rw [Fin.sum_univ_castSucc]
-      simp only [Fin.val_castSucc, Fin.val_last, le_add_iff_nonneg_left, zero_le]
-    exact big_choose_maximal _ _ _ ts
+      lt_of_le_of_lt big_choose_choose_le (InvMacaulayExp_lt_choose hf)
+  · refine big_choose_maximal ?_
+    simp [InvMacaulayExp, Fin.sum_univ_castSucc]
 
 /-- InvMacaulayExp of MacaulayExp is the identity. -/
 theorem InvMacaulayExp_MacaulayExp (j : ℕ) : ∀ n, InvMacaulayExp (MacaulayExp (j + 1) n) = n := by
   induction j with
-  | zero =>
-    unfold InvMacaulayExp
-    intro nsorry
-    simp [Fin.snoc_zero]
+  | zero => simp [InvMacaulayExp, Fin.snoc_zero]
   | succ k hk =>
-    intro n
+    intro _
     rw [MacaulayExp_succ, InvMacaulayExp_snoc, hk]
-    exact Nat.sub_add_cancel (big_choose_choose_le _ _)
+    exact Nat.sub_add_cancel big_choose_choose_le
 
 /-- MacaulayExp of InvMacaulayExp is the identity when its input is strictly monotone. -/
 theorem MacaulayExp_InvMacaulayExp {n : ℕ} {f : Fin n → ℕ} (hf : StrictMono f) :
@@ -317,9 +298,13 @@ theorem last_lt_implies_InvMacaulayExp_lt {n : ℕ} {f g : Fin (n + 1) → ℕ} 
   _ ≤ Nat.choose (g (Fin.last n)) (n + 1) := Nat.choose_mono _ (Nat.add_one_le_iff.mp hfg)
   _ ≤ InvMacaulayExp g := InvMacaulayExp_succ ▸ Nat.le_add_left _ _
 
+lemma Pi.Colex.lt_def {n : ℕ} {s t : Fin n → ℕ} : toColex s < toColex t ↔
+  ∃ i, (∀ j > i, s j = t j) ∧ s i < t i := by rfl
+
+/-- Macaulay expansions under colex are an order bijection with the natural numbers. -/
 theorem InvMacaulayExp_lt_iff {n : ℕ} {f g : Fin n → ℕ} (hf : StrictMono f) (hg : StrictMono g) :
-    InvMacaulayExp f < InvMacaulayExp g ↔
-    ∃ x, f x < g x ∧ ∀ i > x, f i = g i := by
+    InvMacaulayExp f < InvMacaulayExp g ↔ toColex f < toColex g := by
+  rw [Pi.Colex.lt_def]
   induction n with
   | zero => simp
   | succ k hk =>
@@ -329,30 +314,36 @@ theorem InvMacaulayExp_lt_iff {n : ℕ} {f g : Fin n → ℕ} (hf : StrictMono f
       constructor <;> rintro ⟨x, hx₁, hx₂⟩
       · use (x.castSucc)
         constructor
-        · simpa only [Fin.snoc_castSucc]
         · intro i hi
           induction i using Fin.lastCases with
-          | cast _ => simp [hx₂ _ hi]
+          | cast _ => simp [hx₁ _ hi]
           | last => simp
+        · simpa only [Fin.snoc_castSucc]
       · induction x using Fin.lastCases with
         | cast c =>
           use c
-          rw [Fin.snoc_castSucc, Fin.snoc_castSucc] at hx₁
-          refine ⟨hx₁, fun i hi ↦ ?_⟩
-          have := hx₂ i.castSucc (Fin.castSucc_lt_castSucc_iff.mpr hi)
+          rw [Fin.snoc_castSucc, Fin.snoc_castSucc] at hx₂
+          refine ⟨fun i hi ↦ ?_, hx₂⟩
+          have := hx₁ i.castSucc (Fin.castSucc_lt_castSucc_iff.mpr hi)
           simpa
-        | last => simp at hx₁
+        | last => simp at hx₂
     · constructor <;> intro h
       · use Fin.last _
         constructor
-        · contrapose! h
-          exact le_of_lt <| last_lt_implies_InvMacaulayExp_lt hg <| lt_of_le_of_ne h (Ne.symm hfg)
         · intro i hi
           grind only [usr Fin.val_last]
+        · contrapose! h
+          exact le_of_lt <| last_lt_implies_InvMacaulayExp_lt hg <| lt_of_le_of_ne h (Ne.symm hfg)
       · obtain ⟨x, hx₁, hx₂⟩ := h
-        rw [show x = Fin.last k by exact Fin.eq_last_of_not_lt fun a ↦ hfg (hx₂ _ a)] at hx₁
-        exact last_lt_implies_InvMacaulayExp_lt hf hx₁
+        rw [show x = Fin.last k by exact Fin.eq_last_of_not_lt fun a ↦ hfg (hx₁ _ a)] at hx₂
+        exact last_lt_implies_InvMacaulayExp_lt hf hx₂
 
+theorem MacaulayExp_colex_lt_iff {x y n : ℕ} :
+    x < y ↔ toColex (MacaulayExp (n + 1) x) < toColex (MacaulayExp (n + 1) y) := by
+  rw [← @InvMacaulayExp_MacaulayExp n x, ← @InvMacaulayExp_MacaulayExp n y, InvMacaulayExp_lt_iff,
+      InvMacaulayExp_MacaulayExp, InvMacaulayExp_MacaulayExp]
+  · exact MacaulayExp_strict_mono' n x
+  · exact MacaulayExp_strict_mono' n y
 
 def Macaulay (k n : ℕ) : ℕ := InvMacaulayExp (1 + MacaulayExp k n)
 
@@ -373,23 +364,6 @@ lemma macaulay_succ {k n : ℕ} :
   rw [MacaulayExp_succ, Fin.comp_snoc, InvMacaulayExp_snoc]
   congr 1
 
-example {k : ℕ} : ∀ a b, (Macaulay k (a + b) ≤ Macaulay k a + Macaulay k b) := by
-  induction k with
-  | zero => simp
-  | succ k hk =>
-    intro a b
-    let a' := Macaulay k (a - (BigChoose a (k + 1)).choose (k + 1))
-    let a₁ := BigChoose a (k + 1)
-    let b' := Macaulay k (b - (BigChoose b (k + 1)).choose (k + 1))
-    let b₁ := BigChoose b (k + 1)
-    have ha : Macaulay (k + 1) a = a' + (1 + a₁).choose (k + 1) := @macaulay_succ _ a
-    have hb : Macaulay (k + 1) b = b' + (1 + b₁).choose (k + 1) := @macaulay_succ _ b
+end
 
-    sorry
-
-/-
-def toMono {n : ℕ} (f : Fin (n + 1) → ℕ) : Fin n → ℕ :=
-  fun i ↦ f i.succ - f i.castSucc
-
-def ofmono (f : Fin n → ℕ) : Fin (n + 1) → ℕ :=
-  fun i ↦ -/
+end Macaulay
