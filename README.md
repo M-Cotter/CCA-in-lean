@@ -8,4 +8,4 @@ The full code and report is available in the CcaInLean folder. This folder conta
 
 # Acknowledgements
 
-Most of the code in this project was written under the supervision of Mahrud Sayrafi, Mathias Stout and Adam Van Tuyl as supported by a James Stewart Award.
+Most of the code in this project was written under the supervision of Mahrud Sayrafi, Mathias Stout and Adam Van Tuyl as supported by a James Stewart Award. The proof of Macaulay's Theorem used AI, specifically OpenAI's Sol and Luna models, for formalization; these models wrote about a quarter of the code and edited a significant portion. Though the proof strategy is original.
