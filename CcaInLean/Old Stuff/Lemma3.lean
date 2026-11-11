@@ -4,7 +4,9 @@ import CcaInLean.MacaulayAnderson.Lemma2
 
 namespace Finset
 open LocallyFiniteOrder
-
+/-
+# I whould delete this
+-/
 variable {k n : ℕ} {a v : Fin n →₀ ℕ} (i : Fin n) {j : Fin n} {𝒜 : Finset (Fin n →₀ ℕ)}
 
 noncomputable

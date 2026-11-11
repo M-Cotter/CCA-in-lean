@@ -1,7 +1,28 @@
 import Mathlib
+
+/-!
+# Shadow
+
+This file contains definitions and lemmas about shadows of families of monomials.
+
+## Main definitions
+
+* The shadow of a set of monomials, i.e. the set of monomials given by dividing
+  each monomial in the family by any variable. `Shadow`
+
+## Main results
+
+* The shadow of a colex initial segment is the colex initial segment
+  `Shadow_leftSeg_eq_leftSeg`
+
+* Removing a single monomial from a colex initial segment removes at most one
+    element from the shadow. `shadow_erase_subset_insert`
+
+-/
+
 open LocallyFiniteOrder
 
-variable {n : ℕ} {m : Fin (n + 1) →₀ ℕ} {𝒜 : Finset (Fin n →₀ ℕ)}
+variable {n : ℕ} {m : Fin (n + 1) →₀ ℕ} {𝒜 ℬ : Finset (Fin n →₀ ℕ)}
 
 def cLeftSeg (m : Fin n →₀ ℕ) : Finset (Fin n →₀ ℕ) :=
   {x ∈ Finset.finsuppAntidiag Finset.univ (∑ i, m i) | toColex x ≤ toColex m}
@@ -26,6 +47,13 @@ lemma mem_Shadow {v : Fin n →₀ ℕ} :
   simp [Shadow, iShadow]
   refine Iff.intro (fun ⟨i, hi⟩ ↦ ⟨i, hi.1⟩) ?_
   exact fun ⟨i, hi⟩ ↦ ⟨i, hi, by  simp [finset_mem_Icc]⟩
+
+/-- Shadow is monotone. -/
+lemma shadow_mono {v : Fin n →₀ ℕ} (h𝒜 : 𝒜 ⊆ ℬ) :
+    Shadow 𝒜 ⊆ Shadow ℬ := by
+  intro x hx
+  obtain ⟨i, hi⟩ := mem_Shadow.mp hx
+  exact mem_Shadow.mpr ⟨i, h𝒜 hi⟩
 
 lemma sub_single_mem_Shadow {x : Fin n →₀ ℕ} (hx : x ∈ 𝒜) (hi : i ∈ x.support) :
     x - Finsupp.single i 1 ∈ Shadow 𝒜 := by
@@ -219,3 +247,50 @@ theorem Shadow_leftSeg_eq_leftSeg (hm : m ≠ 0) :
         exact nonzero_sum.mp hm
       · rw [← hs₃]
         simp [h.2]
+
+
+/-- A family is initial among monomials of the same degree. -/
+def ColexInitial {n : ℕ} (S : Finset (Fin n →₀ ℕ)) : Prop :=
+  ∀ {u v}, u ∈ S → (∑ i, v i) = (∑ i, u i) → toColex v ≤ toColex u → v ∈ S
+
+/-- Removing a single monomial from a colex initial segment removes at most one
+    element from the shadow. -/
+theorem shadow_erase_subset_insert {n : ℕ}
+    {C : Finset (Fin (n + 1) →₀ ℕ)} (hC : ColexInitial C) {u : Fin (n + 1) →₀ ℕ}
+    (hu : u ∈ C) :
+    Shadow C ⊆ insert (u - Finsupp.single 0 1) (Shadow (C.erase u)) := by
+  intro q hq
+  by_cases hq' : q ∈ Shadow (C.erase u)
+  · exact Finset.mem_insert_of_mem hq'
+  · obtain ⟨i, hi⟩ := mem_Shadow.mp hq
+    have hqi : q + Finsupp.single i 1 = u := by
+      by_contra hne
+      apply hq'
+      exact mem_Shadow.mpr ⟨i, Finset.mem_erase.mpr ⟨hne, hi⟩⟩
+    by_cases hi0 : i = 0
+    · subst i
+      apply Finset.mem_insert.mpr
+      left
+      rw [← hqi]
+      simp
+    · have h0i : (0 : Fin (n + 1)) < i := Fin.pos_iff_ne_zero.mpr hi0
+      have hlt : toColex (q + Finsupp.single (0 : Fin (n + 1)) 1) < toColex u := by
+        rw [← hqi, toColex_add, toColex_add]
+        exact add_lt_add_right (Colex_single_lt_single h0i) (toColex q)
+      have hdeg :
+          (∑ j : Fin (n + 1), (q + Finsupp.single (0 : Fin (n + 1)) 1 :
+            Fin (n + 1) →₀ ℕ) j) = ∑ j, u j := by
+        rw [← hqi]
+        simp [Finset.sum_add_distrib]
+      have hx := hC hu hdeg (le_of_lt hlt)
+      have hne : q + Finsupp.single (0 : Fin (n + 1)) 1 ≠ u := by
+        intro heq
+        rw [heq] at hlt
+        exact (lt_irrefl _) hlt
+      exact (hq' (mem_Shadow.mpr ⟨0, Finset.mem_erase.mpr ⟨hne, hx⟩⟩)).elim
+
+theorem shadow_erase_card_le {n : ℕ}
+    {C : Finset (Fin (n + 1) →₀ ℕ)} (hC : ColexInitial C) {u : Fin (n + 1) →₀ ℕ}
+    (hu : u ∈ C) : (Shadow C).card ≤ (Shadow (C.erase u)).card + 1 := by
+  exact (Finset.card_le_card (shadow_erase_subset_insert hC hu)).trans
+    (Finset.card_insert_le _ _)
